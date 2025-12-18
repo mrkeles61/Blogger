@@ -34,9 +34,15 @@ import { Component, Vue, Prop } from "nuxt-property-decorator";
 @Component
 export default class BookmarkButton extends Vue {
   @Prop({ required: true }) articleId!: string;
-  @Prop({ default: false }) isBookmarked!: boolean;
-  @Prop({ default: false }) loading!: boolean;
   @Prop({ default: false }) showText!: boolean;
+
+  loading = false;
+
+  async mounted() {
+    if (this.isAuthenticated) {
+      await this.$store.dispatch("social/checkBookmarkStatus", this.articleId);
+    }
+  }
 
   async handleClick() {
     if (!this.isAuthenticated) {
@@ -44,11 +50,23 @@ export default class BookmarkButton extends Vue {
       return;
     }
 
-    this.$emit("click");
+    this.loading = true;
+    try {
+      await this.$store.dispatch("social/toggleBookmark", this.articleId);
+      this.$emit("bookmarked");
+    } catch (err: any) {
+      alert(`Failed to ${this.isBookmarked ? "unbookmark" : "bookmark"}: ${err.message}`);
+    } finally {
+      this.loading = false;
+    }
   }
 
   get isAuthenticated() {
     return this.$store.getters["auth/isAuthenticated"];
+  }
+
+  get isBookmarked() {
+    return this.$store.getters["social/isBookmarked"](this.articleId);
   }
 }
 </script>
