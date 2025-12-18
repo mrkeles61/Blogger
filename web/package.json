@@ -1,0 +1,21 @@
+{
+  "name": "web",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "nuxt",
+    "build": "nuxt build",
+    "start": "nuxt start",
+    "generate": "nuxt generate"
+  },
+  "dependencies": {
+    "nuxt": "^2.17.3",
+    "@nuxtjs/tailwindcss": "^6.8.4",
+    "nuxt-property-decorator": "^2.9.1"
+  },
+  "devDependencies": {
+    "@nuxt/typescript-build": "^2.1.0",
+    "@types/node": "^20.10.0"
+  }
+}
+

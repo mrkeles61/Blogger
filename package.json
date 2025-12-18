@@ -1,0 +1,23 @@
+{
+  "name": "bilfen-blog",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "web",
+    "mobile"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:web": "npm run dev --workspace=web",
+    "dev:mobile": "npm run dev --workspace=mobile",
+    "build:backend": "npm run build --workspace=backend",
+    "build:web": "npm run build --workspace=web",
+    "build:mobile": "npm run build --workspace=mobile"
+  },
+  "devDependencies": {
+    "prettier": "^3.0.0",
+    "eslint": "^8.50.0"
+  }
+}
+
