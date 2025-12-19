@@ -110,26 +110,57 @@
             <div class="lg:sticky lg:top-24 bg-white rounded-xl shadow-sm p-6 border border-gray-100">
               <h2 class="text-xl font-playfair font-bold mb-6 text-gray-900">Yayın Bilgileri</h2>
 
-              <!-- Status Toggle -->
+              <!-- Status Dropdown -->
               <div class="mb-6">
-                <label class="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-soft">
-                  <div>
-                    <span class="block font-semibold text-gray-900">Yayınla</span>
-                    <span class="text-sm text-gray-600">
-                      {{ form.publishedAt ? "Yayınlanmış" : "Taslak" }}
-                    </span>
-                  </div>
-                  <label class="relative inline-flex items-center cursor-pointer">
-                    <input
-                      v-model="form.publishedAt"
-                      type="checkbox"
-                      :true-value="new Date().toISOString()"
-                      :false-value="null"
-                      class="sr-only peer"
-                    />
-                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent-orange peer-focus:ring-opacity-20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-orange"></div>
-                  </label>
+                <label for="status" class="block text-sm font-semibold text-gray-700 mb-2">
+                  Durum
                 </label>
+                <select
+                  id="status"
+                  v-model="form.status"
+                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-blue focus:border-transparent transition-soft"
+                  :disabled="!canPublish"
+                >
+                  <option value="Draft">Taslak</option>
+                  <option v-if="canPublish" value="Published">Yayınla</option>
+                  <option v-if="canPublish" value="Scheduled">Zamanlanmış</option>
+                </select>
+                <p v-if="!canPublish" class="mt-1 text-sm text-yellow-600">
+                  ⚠️ Sadece Admin ve Editor rolü makale yayınlayabilir veya zamanlayabilir
+                </p>
+              </div>
+
+              <!-- Scheduled Date Picker -->
+              <div v-if="form.status === 'Scheduled'" class="mb-6">
+                <label for="scheduledFor" class="block text-sm font-semibold text-gray-700 mb-2">
+                  Zamanlanmış Tarih
+                </label>
+                <input
+                  id="scheduledFor"
+                  v-model="form.scheduledFor"
+                  type="datetime-local"
+                  :min="minScheduledDate"
+                  required
+                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-blue focus:border-transparent transition-soft"
+                />
+              </div>
+
+              <!-- Status Preview -->
+              <div v-if="form.status === 'Published'" class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <p class="text-sm text-green-800">
+                  <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Makale hemen yayınlanacak
+                </p>
+              </div>
+              <div v-else-if="form.status === 'Scheduled' && form.scheduledFor" class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p class="text-sm text-blue-800">
+                  <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  Makale yayınlanacak: {{ formatScheduledDate(form.scheduledFor) }}
+                </p>
               </div>
 
               <!-- Publish Date Info -->
@@ -200,7 +231,8 @@ export default class EditArticlePage extends Vue {
     title: "",
     summary: "",
     content: "",
-    publishedAt: null as string | null,
+    status: "Draft" as "Draft" | "Published" | "Scheduled",
+    scheduledFor: "",
   };
 
   $refs!: {
@@ -228,7 +260,10 @@ export default class EditArticlePage extends Vue {
         title: this.article.title,
         summary: this.article.summary,
         content: this.article.content,
-        publishedAt: this.article.publishedAt,
+        status: (this.article.status as "Draft" | "Published" | "Scheduled") || "Draft",
+        scheduledFor: this.article.scheduledFor
+          ? new Date(this.article.scheduledFor).toISOString().slice(0, 16)
+          : "",
       };
     } catch (err: any) {
       this.error = err.message || "Makale yüklenemedi";
@@ -279,17 +314,56 @@ export default class EditArticlePage extends Vue {
     });
   }
 
+  get canPublish(): boolean {
+    const user = (this.$store.state as any).auth?.user;
+    return user?.role === "Admin" || user?.role === "Editor";
+  }
+
+  get minScheduledDate(): string {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + 1);
+    return now.toISOString().slice(0, 16);
+  }
+
+  formatScheduledDate(dateStr: string): string {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("tr-TR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
   async handleSubmit() {
     this.validationErrors = [];
+    
+    // Validate scheduled date
+    if (this.form.status === "Scheduled") {
+      if (!this.form.scheduledFor) {
+        this.validationErrors.push("Zamanlanmış makale için tarih seçmelisiniz");
+        return;
+      }
+      const scheduledDate = new Date(this.form.scheduledFor);
+      if (scheduledDate <= new Date()) {
+        this.validationErrors.push("Zamanlanmış tarih gelecekte olmalıdır");
+        return;
+      }
+    }
+
     this.submitting = true;
 
     try {
-      const payload: any = {};
+      const payload: any = {
+        status: this.form.status,
+      };
       if (this.form.title !== this.article?.title) payload.title = this.form.title;
       if (this.form.summary !== this.article?.summary) payload.summary = this.form.summary;
       if (this.form.content !== this.article?.content) payload.content = this.form.content;
-      if (this.form.publishedAt !== this.article?.publishedAt) {
-        payload.publishedAt = this.form.publishedAt;
+      if (this.form.status === "Scheduled" && this.form.scheduledFor) {
+        payload.scheduledFor = new Date(this.form.scheduledFor).toISOString();
       }
 
       await api.updateArticle(this.$route.params.id, payload);

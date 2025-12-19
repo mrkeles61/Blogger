@@ -3,13 +3,36 @@ import { prisma } from "../lib/prisma";
 import { CreateArticleInput, UpdateArticleInput } from "../lib/validation";
 import { createActivityLog } from "./activityService";
 
-export async function listArticles(
-  search?: string,
-  authorId?: string,
-  onlyPublished = true
-) {
+export interface ListArticlesFilters {
+  search?: string;
+  authorId?: string;
+  status?: "Draft" | "Published" | "Scheduled" | ("Draft" | "Published" | "Scheduled")[];
+  tags?: string[];
+  dateFrom?: Date;
+  dateTo?: Date;
+  onlyPublished?: boolean;
+  sort?: "recent" | "popular";
+  page?: number;
+  limit?: number;
+}
+
+export async function listArticles(filters: ListArticlesFilters = {}) {
+  const {
+    search,
+    authorId,
+    status,
+    tags,
+    dateFrom,
+    dateTo,
+    onlyPublished = true,
+    sort = "recent",
+    page = 1,
+    limit = 20,
+  } = filters;
+
   const where: Prisma.ArticleWhereInput = {};
 
+  // Search query (title, summary, content)
   if (search) {
     where.OR = [
       { title: { contains: search } },
@@ -18,18 +41,55 @@ export async function listArticles(
     ];
   }
 
+  // Author filter
   if (authorId) {
     where.authorId = authorId;
   }
 
-  if (onlyPublished) {
+  // Status filter
+  if (status) {
+    if (Array.isArray(status)) {
+      where.status = { in: status };
+    } else {
+      where.status = status;
+    }
+  } else if (onlyPublished) {
+    // Public users only see Published articles
+      where.status = "Published";
     where.publishedAt = { not: null };
   }
+
+  // Date range filter
+  if (dateFrom || dateTo) {
+    where.createdAt = {};
+    if (dateFrom) {
+      where.createdAt.gte = dateFrom;
+    }
+    if (dateTo) {
+      where.createdAt.lte = dateTo;
+    }
+  }
+
+  // Tags filter (placeholder - would need a separate Tag model for full implementation)
+  // For now, we'll skip tags as they require a separate model
+
+  // Sort order
+  const orderBy: Prisma.ArticleOrderByWithRelationInput[] = [];
+  if (sort === "popular") {
+    orderBy.push({ views: "desc" });
+    orderBy.push({ createdAt: "desc" });
+  } else {
+    orderBy.push({ createdAt: "desc" });
+  }
+
+  const skip = (page - 1) * limit;
 
   const [items, total] = await Promise.all([
     prisma.article.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy,
+      skip,
+      take: limit,
       include: {
         author: {
           select: {
@@ -50,10 +110,21 @@ export async function listArticles(
     prisma.article.count({ where }),
   ]);
 
-  return { items, total };
+  return {
+    items,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
 }
 
-export async function getArticleById(id: string, includeAuthor = true) {
+export async function getArticleById(
+  id: string,
+  includeAuthor = true,
+  preview = false,
+  userId?: string
+) {
   const article = await prisma.article.findUnique({
     where: { id },
     include: includeAuthor
@@ -82,16 +153,103 @@ export async function getArticleById(id: string, includeAuthor = true) {
     throw new Error("Article not found");
   }
 
+  // If not preview mode, check if user can view the article
+  if (!preview) {
+    if (
+      article.status !== "Published" &&
+      article.authorId !== userId
+    ) {
+      throw new Error("Article not found");
+    }
+  } else {
+    // Preview mode: only owner or admin can preview drafts
+    if (article.authorId !== userId) {
+      const user = userId
+        ? await prisma.user.findUnique({ where: { id: userId } })
+        : null;
+      if (!user || user.role !== "Admin") {
+        throw new Error("Not authorized to preview this article");
+      }
+    }
+  }
+
   return article;
 }
 
-export async function createArticle(data: CreateArticleInput, authorId: string) {
+export async function incrementArticleView(
+  articleId: string,
+  userId?: string,
+  ip?: string
+) {
+  // Don't count views from the author
+  const article = await prisma.article.findUnique({
+    where: { id: articleId },
+    select: { authorId: true },
+  });
+
+  if (article && article.authorId !== userId) {
+    // Increment view count
+    await prisma.article.update({
+      where: { id: articleId },
+      data: { views: { increment: 1 } },
+    });
+
+    // Track detailed view (optional)
+    if (userId || ip) {
+      await prisma.articleView.create({
+        data: {
+          articleId,
+          userId: userId || null,
+          ip: ip || null,
+        },
+      });
+    }
+  }
+}
+
+export async function createArticle(
+  data: CreateArticleInput,
+  authorId: string,
+  userRole: string
+) {
+  // Determine status and publishedAt
+  const status = data.status || "Draft";
+  const isAdminOrEditor = userRole === "Admin" || userRole === "Editor";
+
+  // Only Admin/Editor can publish or schedule
+  if (
+    (status === "Published" || status === "Scheduled") &&
+    !isAdminOrEditor
+  ) {
+    throw new Error("Only Admin or Editor can publish or schedule articles");
+  }
+
+  // Validate scheduledFor for Scheduled status
+  if (status === "Scheduled") {
+    if (!data.scheduledFor) {
+      throw new Error("scheduledFor is required when status is Scheduled");
+    }
+    const scheduledDate = new Date(data.scheduledFor);
+    if (scheduledDate <= new Date()) {
+      throw new Error("scheduledFor must be in the future");
+    }
+  }
+
+  // Set publishedAt for Published status
+  let publishedAt: Date | null = null;
+  if (status === "Published") {
+    publishedAt = data.publishedAt ? new Date(data.publishedAt) : new Date();
+  }
+
   const article = await prisma.article.create({
     data: {
       title: data.title,
       summary: data.summary,
       content: data.content,
-      publishedAt: data.publishedAt ? new Date(data.publishedAt) : null,
+      status,
+      publishedAt,
+      scheduledFor: data.scheduledFor ? new Date(data.scheduledFor) : null,
+      isFeatured: data.isFeatured || false,
       authorId,
     },
     include: {
@@ -122,6 +280,7 @@ export async function updateArticle(
   id: string,
   data: UpdateArticleInput,
   userId: string,
+  userRole: string,
   isAdmin = false
 ) {
   const article = await prisma.article.findUnique({
@@ -137,13 +296,55 @@ export async function updateArticle(
     throw new Error("Not authorized to update this article");
   }
 
+  const isAdminOrEditor = userRole === "Admin" || userRole === "Editor";
   const updateData: Prisma.ArticleUpdateInput = {};
 
   if (data.title !== undefined) updateData.title = data.title;
   if (data.summary !== undefined) updateData.summary = data.summary;
   if (data.content !== undefined) updateData.content = data.content;
-  if (data.publishedAt !== undefined) {
-    updateData.publishedAt = data.publishedAt ? new Date(data.publishedAt) : null;
+  if (data.isFeatured !== undefined && isAdmin) {
+    updateData.isFeatured = data.isFeatured;
+  }
+
+  // Handle status changes
+  if (data.status !== undefined) {
+    const newStatus = data.status as "Draft" | "Published" | "Scheduled";
+
+    // Only Admin/Editor can publish or schedule
+    if (
+      (newStatus === "Published" ||
+        newStatus === "Scheduled") &&
+      !isAdminOrEditor
+    ) {
+      throw new Error("Only Admin or Editor can publish or schedule articles");
+    }
+
+    updateData.status = newStatus;
+
+    // Handle scheduledFor for Scheduled status
+    if (newStatus === "Scheduled") {
+      if (!data.scheduledFor) {
+        throw new Error("scheduledFor is required when status is Scheduled");
+      }
+      const scheduledDate = new Date(data.scheduledFor);
+      if (scheduledDate <= new Date()) {
+        throw new Error("scheduledFor must be in the future");
+      }
+      updateData.scheduledFor = scheduledDate;
+    } else {
+      updateData.scheduledFor = null;
+    }
+
+    // Handle publishedAt for Published status
+    if (newStatus === "Published") {
+      updateData.publishedAt = data.publishedAt
+        ? new Date(data.publishedAt)
+        : article.publishedAt || new Date();
+    } else if (newStatus === "Draft") {
+      updateData.publishedAt = null;
+    }
+  } else if (data.scheduledFor !== undefined) {
+    updateData.scheduledFor = data.scheduledFor ? new Date(data.scheduledFor) : null;
   }
 
   return prisma.article.update({

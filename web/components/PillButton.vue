@@ -25,25 +25,42 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue, Prop } from "nuxt-property-decorator";
+import Vue from "vue";
 
-@Component
-export default class PillButton extends Vue {
-  @Prop({ default: "button" }) type!: string;
-  @Prop({ default: false }) disabled!: boolean;
-  @Prop({ default: false }) loading!: boolean;
-  @Prop({ default: "Loading..." }) loadingText!: string;
-  @Prop({ default: "primary" }) variant!: "primary" | "secondary" | "outline" | "danger";
-
-  get variantClasses(): string {
-    const variants = {
-      primary: "bg-gradient-shift text-white hover:shadow-glow focus:ring-accent-orange",
-      secondary: "bg-accent-blue text-white hover:bg-blue-700 focus:ring-accent-blue",
-      outline: "border-2 border-accent-orange text-accent-orange hover:bg-accent-orange hover:text-white focus:ring-accent-orange",
-      danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500",
-    };
-    return variants[this.variant];
-  }
-}
+export default Vue.extend({
+  name: "PillButton",
+  props: {
+    type: {
+      type: String,
+      default: "button",
+    },
+    disabled: {
+      type: Boolean,
+      default: false,
+    },
+    loading: {
+      type: Boolean,
+      default: false,
+    },
+    loadingText: {
+      type: String,
+      default: "Loading...",
+    },
+    variant: {
+      type: String as () => "primary" | "secondary" | "outline" | "danger",
+      default: "primary",
+    },
+  },
+  computed: {
+    variantClasses(): string {
+      const variants: Record<string, string> = {
+        primary: "bg-gradient-shift text-white hover:shadow-glow focus:ring-accent-orange",
+        secondary: "bg-accent-blue text-white hover:bg-blue-700 focus:ring-accent-blue",
+        outline: "border-2 border-accent-orange text-accent-orange hover:bg-accent-orange hover:text-white focus:ring-accent-orange",
+        danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500",
+      };
+      return variants[this.variant] || variants.primary;
+    },
+  },
+});
 </script>
-

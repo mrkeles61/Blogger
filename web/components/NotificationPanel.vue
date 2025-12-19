@@ -46,7 +46,9 @@
               >
                 <div class="flex items-start gap-3">
                   <div class="flex-shrink-0 w-10 h-10 rounded-full bg-accent-orange bg-opacity-20 flex items-center justify-center">
-                    <component :is="getNotificationIcon(notification.type)" class="w-5 h-5 text-accent-orange" />
+                    <svg class="w-5 h-5 text-accent-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
                   </div>
                   <div class="flex-1 min-w-0">
                     <p class="text-sm text-gray-900">
@@ -81,61 +83,63 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue, Prop } from "nuxt-property-decorator";
+import Vue, { PropType } from "vue";
 import { Notification } from "~/utils/api";
 
-@Component
-export default class NotificationPanel extends Vue {
-  @Prop({ required: true }) isOpen!: boolean;
-  @Prop({ default: () => [] }) notifications!: Notification[];
-  @Prop({ default: false }) loading!: boolean;
-
-  get unreadCount(): number {
-    return this.notifications.filter((n) => !n.readAt).length;
-  }
-
-  getNotificationText(notification: Notification): string {
-    try {
-      const payload = JSON.parse(notification.payload);
-      switch (notification.type) {
-        case "like":
-          return `${payload.likerName || "Someone"} liked your article`;
-        case "comment":
-          return `${payload.commenterName || "Someone"} commented on your article`;
-        case "follow":
-          return "Someone started following you";
-        default:
-          return "You have a new notification";
+export default Vue.extend({
+  name: "NotificationPanel",
+  props: {
+    isOpen: {
+      type: Boolean,
+      required: true,
+    },
+    notifications: {
+      type: Array as PropType<Notification[]>,
+      default: () => [],
+    },
+    loading: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  computed: {
+    unreadCount(): number {
+      return this.notifications.filter((n) => !n.readAt).length;
+    },
+  },
+  methods: {
+    getNotificationText(notification: Notification): string {
+      try {
+        const payload = JSON.parse(notification.payload);
+        switch (notification.type) {
+          case "like":
+            return `${payload.likerName || "Someone"} liked your article`;
+          case "comment":
+            return `${payload.commenterName || "Someone"} commented on your article`;
+          case "follow":
+            return "Someone started following you";
+          default:
+            return "You have a new notification";
+        }
+      } catch {
+        return "You have a new notification";
       }
-    } catch {
-      return "You have a new notification";
-    }
-  }
+    },
+    formatDate(dateString: string): string {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
 
-  getNotificationIcon(type: string): string {
-    const iconMap: Record<string, string> = {
-      like: "svg-heart",
-      comment: "svg-comment",
-      follow: "svg-user-plus",
-    };
-    return iconMap[type] || "svg-bell";
-  }
-
-  formatDate(dateString: string): string {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-
-    if (diffMins < 1) return "just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    return date.toLocaleDateString();
-  }
-
-  handleNotificationClick(notification: Notification) {
-    this.$emit("notification-click", notification);
-  }
-}
+      if (diffMins < 1) return "just now";
+      if (diffMins < 60) return `${diffMins}m ago`;
+      return date.toLocaleDateString();
+    },
+    handleNotificationClick(notification: Notification) {
+      this.$emit("notification-click", notification);
+    },
+  },
+});
 </script>
 
 <style scoped>
@@ -159,4 +163,3 @@ export default class NotificationPanel extends Vue {
   transform: translateX(100%);
 }
 </style>
-

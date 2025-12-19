@@ -219,95 +219,84 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue, Watch } from "nuxt-property-decorator";
+import Vue from "vue";
 import { Notification } from "~/utils/api";
 import { api } from "~/utils/api";
-import NotificationPanel from "~/components/NotificationPanel.vue";
 
-@Component({
-  components: {
-    NotificationPanel,
+export default Vue.extend({
+  name: "DefaultLayout",
+  data() {
+    return {
+      showNotifications: false,
+      searchQuery: "",
+      notifications: [] as Notification[],
+      notificationsLoading: false,
+    };
   },
-})
-export default class DefaultLayout extends Vue {
-  showNotifications = false;
-  searchQuery = "";
-  notifications: Notification[] = [];
-  notificationsLoading = false;
-
-  get isAuthenticated() {
-    return this.$store.getters["auth/isAuthenticated"];
-  }
-
-  get user() {
-    return this.$store.state.auth.user;
-  }
-
-  get isLoginPage() {
-    return this.$route.path === "/login";
-  }
-
-  get unreadNotifications(): number {
-    return this.notifications.filter((n) => !n.readAt).length;
-  }
-
-  async handleSearch() {
-    if (this.searchQuery) {
-      this.$router.push({ path: "/", query: { search: this.searchQuery } });
-    }
-  }
-
-  async handleNotificationClick(notification: Notification) {
-    try {
-      const payload = JSON.parse(notification.payload);
-      if (payload.articleId) {
-        this.$router.push(`/articles/${payload.articleId}`);
-      }
-      this.showNotifications = false;
-    } catch {
-      // Ignore
-    }
-  }
-
-  async handleMarkAllRead() {
-    try {
-      await this.$store.dispatch("feed/markAllAsRead");
-      await this.loadNotifications();
-    } catch (err) {
-      console.error("Failed to mark all as read:", err);
-    }
-  }
-
-  async loadNotifications() {
-    if (!this.isAuthenticated) return;
-    this.notificationsLoading = true;
-    try {
-      const loaded = await api.getNotifications(false);
-      this.notifications = loaded;
-      this.$store.dispatch("feed/loadNotifications", false);
-    } catch (err) {
-      console.error("Failed to load notifications:", err);
-    } finally {
-      this.notificationsLoading = false;
-    }
-  }
-
-  async mounted() {
-    if (this.isAuthenticated) {
-      await this.loadNotifications();
-    }
-  }
-
+  computed: {
+    isAuthenticated(): boolean {
+      return this.$store.getters["auth/isAuthenticated"];
+    },
+    user() {
+      return this.$store.state.auth.user;
+    },
+    isLoginPage(): boolean {
+      return this.$route.path === "/login";
+    },
+    unreadNotifications(): number {
+      return this.notifications.filter((n) => !n.readAt).length;
+    },
+  },
   watch: {
     showNotifications(newVal: boolean) {
       if (newVal && this.isAuthenticated) {
         this.loadNotifications();
       }
+    },
+  },
+  async mounted() {
+    if (this.isAuthenticated) {
+      await this.loadNotifications();
     }
-  }
-}
-</script>
-
-<script setup lang="ts">
-import { api } from "~/utils/api";
+  },
+  methods: {
+    async handleSearch() {
+      if (this.searchQuery) {
+        this.$router.push({ path: "/", query: { search: this.searchQuery } });
+      }
+    },
+    async handleNotificationClick(notification: Notification) {
+      try {
+        const payload = JSON.parse(notification.payload);
+        if (payload.articleId) {
+          this.$router.push(`/articles/${payload.articleId}`);
+        }
+        this.showNotifications = false;
+      } catch {
+        // Ignore
+      }
+    },
+    async handleMarkAllRead() {
+      try {
+        await this.$store.dispatch("feed/markAllAsRead");
+        await this.loadNotifications();
+      } catch (err) {
+        console.error("Failed to mark all as read:", err);
+      }
+    },
+    async loadNotifications() {
+      if (!this.isAuthenticated) return;
+      this.notificationsLoading = true;
+      try {
+        const loaded = await api.getNotifications(false);
+        this.notifications = loaded;
+        this.$store.dispatch("feed/loadNotifications", false);
+      } catch (err) {
+        console.error("Failed to load notifications:", err);
+      } finally {
+        this.notificationsLoading = false;
+      }
+    },
+  },
+});
 </script>

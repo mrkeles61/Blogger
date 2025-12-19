@@ -102,13 +102,15 @@ export async function hasUserLiked(userId: string, articleId: string) {
 export async function addComment(
   userId: string,
   articleId: string,
-  content: string
+  content: string,
+  parentId?: string
 ) {
   const comment = await prisma.comment.create({
     data: {
       userId,
       articleId,
       content,
+      parentId: parentId || null,
     },
     include: {
       user: {
@@ -119,6 +121,21 @@ export async function addComment(
           avatarUrl: true,
         },
       },
+      parent: parentId
+        ? {
+            select: {
+              id: true,
+              userId: true,
+              user: {
+                select: {
+                  id: true,
+                  username: true,
+                  displayName: true,
+                },
+              },
+            },
+          }
+        : undefined,
     },
   });
 
@@ -127,26 +144,56 @@ export async function addComment(
     commentId: comment.id,
   });
 
-  // Create notification for article author
+  // Handle notifications
   const article = await prisma.article.findUnique({
     where: { id: articleId },
     select: { authorId: true },
   });
 
-  if (article && article.authorId !== userId) {
-    await prisma.notification.create({
-      data: {
-        userId: article.authorId,
-        type: "comment",
-        payload: JSON.stringify({
-          articleId,
-          commentId: comment.id,
-          commenterId: userId,
-          commenterName: comment.user.displayName || comment.user.username,
-        }),
-      },
-    });
+  const commenterName = comment.user.displayName || comment.user.username;
+
+  // If it's a reply, notify the parent comment author
+  if (parentId && comment.parent) {
+    const parentCommentAuthorId = comment.parent.userId;
+    if (parentCommentAuthorId !== userId) {
+      await prisma.notification.create({
+        data: {
+          userId: parentCommentAuthorId,
+          type: "comment_reply",
+          payload: JSON.stringify({
+            articleId,
+            commentId: comment.id,
+            parentCommentId: parentId,
+            commenterId: userId,
+            commenterName,
+          }),
+        },
+      });
+    }
   }
+
+  // Notify article author (unless it's their own comment or a reply they're already notified about)
+  if (article && article.authorId !== userId) {
+    if (!parentId || (comment.parent && comment.parent.userId !== article.authorId)) {
+      await prisma.notification.create({
+        data: {
+          userId: article.authorId,
+          type: "comment",
+          payload: JSON.stringify({
+            articleId,
+            commentId: comment.id,
+            commenterId: userId,
+            commenterName,
+          }),
+        },
+      });
+    }
+  }
+
+  // Handle @mentions in content
+  handleMentions(content, articleId, userId, comment.id).catch((err) => {
+    console.error("Error handling mentions:", err);
+  });
 
   return comment;
 }
@@ -206,9 +253,46 @@ export async function deleteComment(commentId: string, userId: string, isAdmin =
 }
 
 export async function getArticleComments(articleId: string) {
-  return prisma.comment.findMany({
+  const comments = await prisma.comment.findMany({
     where: {
       articleId,
+      deletedAt: null,
+      parentId: null, // Only top-level comments
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+        },
+      },
+      replies: {
+        where: { deletedAt: null },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              avatarUrl: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "asc" },
+      },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return comments;
+}
+
+export async function getCommentReplies(commentId: string) {
+  return prisma.comment.findMany({
+    where: {
+      parentId: commentId,
       deletedAt: null,
     },
     include: {
@@ -223,6 +307,45 @@ export async function getArticleComments(articleId: string) {
     },
     orderBy: { createdAt: "asc" },
   });
+}
+
+async function handleMentions(
+  content: string,
+  articleId: string,
+  commenterId: string,
+  commentId: string
+) {
+  // Extract @mentions from content (simple regex for @username)
+  const mentionRegex = /@(\w+)/g;
+  const mentions: string[] = [];
+  let match;
+
+  while ((match = mentionRegex.exec(content)) !== null) {
+    mentions.push(match[1]);
+  }
+
+  // Find mentioned users
+  for (const username of mentions) {
+    const user = await prisma.user.findUnique({
+      where: { username },
+      select: { id: true },
+    });
+
+    if (user && user.id !== commenterId) {
+      // Create notification for mentioned user
+      await prisma.notification.create({
+        data: {
+          userId: user.id,
+          type: "mention",
+          payload: JSON.stringify({
+            articleId,
+            commentId,
+            commenterId,
+          }),
+        },
+      });
+    }
+  }
 }
 
 export async function bookmarkArticle(userId: string, articleId: string) {

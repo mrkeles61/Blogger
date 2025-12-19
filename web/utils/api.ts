@@ -13,7 +13,11 @@ export interface Article {
   title: string;
   summary: string;
   content: string;
+  status?: "Draft" | "Published" | "Scheduled";
   publishedAt: string | null;
+  scheduledFor?: string | null;
+  isFeatured?: boolean;
+  views?: number;
   createdAt: string;
   updatedAt: string;
   authorId?: string;
@@ -27,20 +31,29 @@ export interface Article {
 export interface ArticlesResponse {
   items: Article[];
   total: number;
+  page?: number;
+  limit?: number;
+  totalPages?: number;
 }
 
 export interface CreateArticlePayload {
   title: string;
   summary: string;
   content: string;
+  status?: "Draft" | "Published" | "Scheduled";
   publishedAt?: string | null;
+  scheduledFor?: string | null;
+  isFeatured?: boolean;
 }
 
 export interface UpdateArticlePayload {
   title?: string;
   summary?: string;
   content?: string;
+  status?: "Draft" | "Published" | "Scheduled";
   publishedAt?: string | null;
+  scheduledFor?: string | null;
+  isFeatured?: boolean;
 }
 
 export interface User {
@@ -87,10 +100,12 @@ export interface Comment {
   id: string;
   userId: string;
   articleId: string;
+  parentId?: string | null;
   content: string;
   createdAt: string;
   updatedAt: string;
   user: User;
+  replies?: Comment[];
 }
 
 export interface Like {
@@ -167,14 +182,29 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
-  return fetch(url, {
-    ...fetchOptions,
-    ...options,
-    headers: {
-      ...fetchOptions.headers,
-      ...options.headers,
-    },
-  });
+  // Add timeout to prevent hanging
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+  try {
+    const response = await fetch(url, {
+      ...fetchOptions,
+      ...options,
+      signal: controller.signal,
+      headers: {
+        ...fetchOptions.headers,
+        ...options.headers,
+      },
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === "AbortError") {
+      throw new Error("Request timeout - backend may be unavailable");
+    }
+    throw error;
+  }
 }
 
 export const api = {
@@ -307,10 +337,10 @@ export const api = {
   },
 
   // Social - Comments
-  async addComment(articleId: string, content: string): Promise<Comment> {
+  async addComment(articleId: string, content: string, parentId?: string | null): Promise<Comment> {
     const response = await fetchWithAuth(`${API_BASE}/api/articles/${articleId}/comments`, {
       method: "POST",
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ content, parentId: parentId || undefined }),
     });
     return handleResponse<Comment>(response);
   },

@@ -1,11 +1,10 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma";
-import { Role } from "@prisma/client";
 
 export async function createUser(
   email: string,
   password: string,
-  role: Role = Role.Viewer
+  role: string = "Viewer"
 ) {
   const passwordHash = await bcrypt.hash(password, 10);
 

@@ -24,17 +24,67 @@
               placeholder="Email address"
             />
           </div>
-          <div>
+          <div class="relative">
             <label for="password" class="sr-only">Password</label>
             <input
               id="password"
               v-model="form.password"
               name="password"
-              type="password"
+              :type="showPassword ? 'text' : 'password'"
               required
-              class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+              class="appearance-none rounded-none relative block w-full px-3 py-2 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
               placeholder="Password"
             />
+            <button
+              type="button"
+              tabindex="-1"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-800 transition-colors focus:outline-none z-20"
+              @click.stop.prevent="showPassword = !showPassword"
+              aria-label="Şifreyi göster/gizle"
+            >
+              <!-- Şifre gizliyken: Göz ikonu (göster) -->
+              <svg
+                v-if="!showPassword"
+                class="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                />
+              </svg>
+              <!-- Şifre görünürken: Çizgili göz ikonu (gizle) -->
+              <svg
+                v-else
+                class="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.29 3.29m0 0L12 12m-5.71-5.71L12 12"
+                />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M3 3l18 18"
+                />
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -58,33 +108,45 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue } from "nuxt-property-decorator";
+import Vue from "vue";
 
-@Component
-export default class LoginPage extends Vue {
-  form = {
-    email: "",
-    password: "",
-  };
-  loading = false;
-  error: string | null = null;
+export default Vue.extend({
+  name: "LoginPage",
+  data() {
+    return {
+      form: {
+        email: "",
+        password: "",
+      },
+      loading: false,
+      error: null as string | null,
+      showPassword: false,
+    };
+  },
+  methods: {
+    async handleSubmit() {
+      this.loading = true;
+      this.error = null;
 
-  async handleSubmit() {
-    this.loading = true;
-    this.error = null;
-
-    try {
-      await this.$store.dispatch("auth/login", {
-        email: this.form.email,
-        password: this.form.password,
-      });
-      this.$router.push("/");
-    } catch (err: any) {
-      this.error = err.message || "Failed to login. Please check your credentials.";
-    } finally {
-      this.loading = false;
-    }
-  }
-}
+      try {
+        await this.$store.dispatch("auth/login", {
+          email: this.form.email,
+          password: this.form.password,
+        });
+        this.$router.push("/");
+      } catch (err: any) {
+        // Better error handling for network errors
+        if (err.message && err.message.includes("timeout")) {
+          this.error = "Backend sunucusu çalışmıyor. Lütfen backend'in başlatıldığından emin olun.";
+        } else if (err.message && err.message.includes("Failed to fetch")) {
+          this.error = "Backend sunucusuna bağlanılamıyor. Lütfen backend'in çalıştığından emin olun.";
+        } else {
+          this.error = err.message || "Giriş başarısız. Lütfen bilgilerinizi kontrol edin.";
+        }
+      } finally {
+        this.loading = false;
+      }
+    },
+  },
+});
 </script>
-

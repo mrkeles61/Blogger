@@ -8,6 +8,7 @@ import {
   updateComment,
   deleteComment,
   getArticleComments,
+  getCommentReplies,
   bookmarkArticle,
   unbookmarkArticle,
   getUserBookmarks,
@@ -77,9 +78,9 @@ socialRouter.post(
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
     const userId = req.user!.id;
-    const { content } = commentSchema.parse(req.body);
+    const { content, parentId } = { ...commentSchema.parse(req.body), parentId: req.body.parentId };
 
-    const comment = await addComment(userId, id, content);
+    const comment = await addComment(userId, id, content, parentId);
     res.status(201).json(comment);
   })
 );
@@ -119,6 +120,16 @@ socialRouter.delete(
 
     await deleteComment(id, userId, isAdmin);
     res.status(204).send();
+  })
+);
+
+// GET /api/comments/:id/replies (public)
+socialRouter.get(
+  "/comments/:id/replies",
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const { id } = req.params;
+    const replies = await getCommentReplies(id);
+    res.json(replies);
   })
 );
 

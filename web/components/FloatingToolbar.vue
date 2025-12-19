@@ -46,13 +46,14 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue } from "nuxt-property-decorator";
+import Vue from "vue";
 
-@Component
-export default class FloatingToolbar extends Vue {
-  handleFormat(formatType: string) {
-    this.$emit("format", formatType);
-  }
-}
+export default Vue.extend({
+  name: "FloatingToolbar",
+  methods: {
+    handleFormat(formatType: string) {
+      this.$emit("format", formatType);
+    },
+  },
+});
 </script>
-

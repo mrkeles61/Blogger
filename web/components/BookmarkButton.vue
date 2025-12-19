@@ -29,45 +29,55 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue, Prop } from "nuxt-property-decorator";
+import Vue from "vue";
 
-@Component
-export default class BookmarkButton extends Vue {
-  @Prop({ required: true }) articleId!: string;
-  @Prop({ default: false }) showText!: boolean;
-
-  loading = false;
-
+export default Vue.extend({
+  name: "BookmarkButton",
+  props: {
+    articleId: {
+      type: String,
+      required: true,
+    },
+    showText: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  data() {
+    return {
+      loading: false,
+    };
+  },
+  computed: {
+    isAuthenticated(): boolean {
+      return this.$store.getters["auth/isAuthenticated"];
+    },
+    isBookmarked(): boolean {
+      return this.$store.getters["social/isBookmarked"](this.articleId);
+    },
+  },
   async mounted() {
     if (this.isAuthenticated) {
       await this.$store.dispatch("social/checkBookmarkStatus", this.articleId);
     }
-  }
+  },
+  methods: {
+    async handleClick() {
+      if (!this.isAuthenticated) {
+        this.$router.push("/login");
+        return;
+      }
 
-  async handleClick() {
-    if (!this.isAuthenticated) {
-      this.$router.push("/login");
-      return;
-    }
-
-    this.loading = true;
-    try {
-      await this.$store.dispatch("social/toggleBookmark", this.articleId);
-      this.$emit("bookmarked");
-    } catch (err: any) {
-      alert(`Failed to ${this.isBookmarked ? "unbookmark" : "bookmark"}: ${err.message}`);
-    } finally {
-      this.loading = false;
-    }
-  }
-
-  get isAuthenticated() {
-    return this.$store.getters["auth/isAuthenticated"];
-  }
-
-  get isBookmarked() {
-    return this.$store.getters["social/isBookmarked"](this.articleId);
-  }
-}
+      this.loading = true;
+      try {
+        await this.$store.dispatch("social/toggleBookmark", this.articleId);
+        this.$emit("bookmarked");
+      } catch (err: any) {
+        alert(`Failed to ${this.isBookmarked ? "unbookmark" : "bookmark"}: ${err.message}`);
+      } finally {
+        this.loading = false;
+      }
+    },
+  },
+});
 </script>
-

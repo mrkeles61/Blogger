@@ -10,17 +10,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  Admin
-  Editor
-  Viewer
-}
+// Note: SQLite doesn't support enums, so we use String types
+// Role: "Admin" | "Editor" | "Viewer"
+// ArticleStatus: "Draft" | "Published" | "Scheduled"
+// CollaboratorRole: "CoAuthor" | "Reviewer"
+// ReportStatus: "Open" | "InReview" | "Resolved"
+// ReportType: "Article" | "Comment"
 
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
   passwordHash  String
-  role          Role      @default(Viewer)
+  role          String    @default("Viewer")
   username      String?   @unique
   displayName   String?
   bio           String?
@@ -37,38 +38,49 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   // Relations
-  articles      Article[]
-  likes         Like[]
-  comments      Comment[]
-  bookmarks     Bookmark[]
-  followers     Follow[]  @relation("Follower")
-  following     Follow[]  @relation("Following")
-  notifications Notification[]
-  activities    ActivityLog[]
+  articles         Article[]
+  likes            Like[]
+  comments         Comment[]         @relation("CommentAuthor")
+  bookmarks        Bookmark[]
+  followers        Follow[]          @relation("Follower")
+  following        Follow[]          @relation("Following")
+  notifications    Notification[]
+  activities       ActivityLog[]
+  collaborations   ArticleCollaborator[]
+  reports          Report[]
+  moderationActions ModerationAction[]
 
   @@index([email])
   @@index([username])
 }
 
 model Article {
-  id          String    @id @default(cuid())
-  title       String
-  summary     String
-  content     String
-  publishedAt DateTime?
-  authorId    String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id           String        @id @default(cuid())
+  title        String
+  summary      String
+  content      String
+  status       String        @default("Draft")
+  publishedAt  DateTime?
+  scheduledFor DateTime?
+  isFeatured   Boolean       @default(false)
+  views        Int           @default(0)
+  authorId     String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   // Relations
-  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  likes       Like[]
-  comments    Comment[]
-  bookmarks   Bookmark[]
+  author       User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  likes        Like[]
+  comments     Comment[]
+  bookmarks    Bookmark[]
+  collaborators ArticleCollaborator[]
+  articleViews  ArticleView[]
 
   @@index([title])
   @@index([publishedAt])
   @@index([authorId])
+  @@index([status])
+  @@index([scheduledFor])
 }
 
 model Like {
@@ -89,16 +101,20 @@ model Comment {
   id        String    @id @default(cuid())
   userId    String
   articleId String
+  parentId  String?
   content   String
   deletedAt DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user      User      @relation("CommentAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  article   Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Comment[] @relation("CommentReplies")
 
   @@index([articleId])
   @@index([userId])
+  @@index([parentId])
 }
 
 model Bookmark {
@@ -154,5 +170,70 @@ model ActivityLog {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([createdAt])
+}
+
+model ArticleCollaborator {
+  id        String          @id @default(cuid())
+  articleId String
+  userId    String
+  role      String
+  createdAt DateTime        @default(now())
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, userId])
+  @@index([articleId])
+  @@index([userId])
+}
+
+model ArticleView {
+  id        String   @id @default(cuid())
+  articleId String
+  userId    String?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@index([articleId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Report {
+  id            String       @id @default(cuid())
+  type          String
+  itemId        String
+  reporterId    String
+  reason        String
+  status        String       @default("Open")
+  resolutionNotes String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  resolvedAt    DateTime?
+
+  reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([type])
+  @@index([itemId])
+  @@index([status])
+  @@index([reporterId])
+}
+
+model ModerationAction {
+  id        String   @id @default(cuid())
+  adminId   String
+  targetType String  // "Article" | "Comment" | "User" | "Report"
+  targetId  String
+  action    String   // e.g., "delete", "hide", "approve", "resolve"
+  notes     String?
+  createdAt DateTime @default(now())
+
+  admin User @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([targetType, targetId])
   @@index([createdAt])
 }

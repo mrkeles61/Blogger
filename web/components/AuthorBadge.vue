@@ -39,12 +39,16 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue, Prop } from "nuxt-property-decorator";
+import Vue, { PropType } from "vue";
 import { User } from "~/utils/api";
 
-@Component
-export default class AuthorBadge extends Vue {
-  @Prop({ required: true }) user!: User;
-}
+export default Vue.extend({
+  name: "AuthorBadge",
+  props: {
+    user: {
+      type: Object as PropType<User>,
+      required: true,
+    },
+  },
+});
 </script>
-

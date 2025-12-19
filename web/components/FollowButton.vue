@@ -14,45 +14,55 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue, Prop } from "nuxt-property-decorator";
+import Vue from "vue";
 
-@Component
-export default class FollowButton extends Vue {
-  @Prop({ required: true }) userId!: string;
-  @Prop({ default: false }) isOwnProfile!: boolean;
-
-  loading = false;
-
+export default Vue.extend({
+  name: "FollowButton",
+  props: {
+    userId: {
+      type: String,
+      required: true,
+    },
+    isOwnProfile: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  data() {
+    return {
+      loading: false,
+    };
+  },
+  computed: {
+    isAuthenticated(): boolean {
+      return this.$store.getters["auth/isAuthenticated"];
+    },
+    isFollowing(): boolean {
+      return this.$store.getters["social/isFollowingUser"](this.userId);
+    },
+  },
   async mounted() {
     if (this.isAuthenticated && !this.isOwnProfile) {
       await this.$store.dispatch("social/checkFollowStatus", this.userId);
     }
-  }
+  },
+  methods: {
+    async handleClick() {
+      if (!this.isAuthenticated) {
+        this.$router.push("/login");
+        return;
+      }
 
-  async handleClick() {
-    if (!this.isAuthenticated) {
-      this.$router.push("/login");
-      return;
-    }
-
-    this.loading = true;
-    try {
-      await this.$store.dispatch("social/toggleFollow", this.userId);
-      this.$emit("followed");
-    } catch (err: any) {
-      alert(`Failed to ${this.isFollowing ? "unfollow" : "follow"}: ${err.message}`);
-    } finally {
-      this.loading = false;
-    }
-  }
-
-  get isAuthenticated() {
-    return this.$store.getters["auth/isAuthenticated"];
-  }
-
-  get isFollowing() {
-    return this.$store.getters["social/isFollowingUser"](this.userId);
-  }
-}
+      this.loading = true;
+      try {
+        await this.$store.dispatch("social/toggleFollow", this.userId);
+        this.$emit("followed");
+      } catch (err: any) {
+        alert(`Failed to ${this.isFollowing ? "unfollow" : "follow"}: ${err.message}`);
+      } finally {
+        this.loading = false;
+      }
+    },
+  },
+});
 </script>
-

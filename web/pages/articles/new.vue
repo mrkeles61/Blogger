@@ -93,31 +93,59 @@
           <div class="lg:sticky lg:top-24 bg-white rounded-xl shadow-sm p-6 border border-gray-100">
             <h2 class="text-xl font-playfair font-bold mb-6 text-gray-900">Yayın Bilgileri</h2>
 
-            <!-- Status Toggle -->
+            <!-- Status Dropdown -->
             <div class="mb-6">
-              <label class="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-soft">
-                <div>
-                  <span class="block font-semibold text-gray-900">Yayınla</span>
-                  <span class="text-sm text-gray-600">Makaleyi hemen yayınla</span>
-                </div>
-                <label class="relative inline-flex items-center cursor-pointer">
-                  <input
-                    v-model="publishNow"
-                    type="checkbox"
-                    class="sr-only peer"
-                  />
-                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent-orange peer-focus:ring-opacity-20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-orange"></div>
-                </label>
+              <label for="status" class="block text-sm font-semibold text-gray-700 mb-2">
+                Durum
               </label>
+              <select
+                id="status"
+                v-model="form.status"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-blue focus:border-transparent transition-soft"
+                :disabled="!canPublish"
+              >
+                <option value="Draft">Taslak</option>
+                <option v-if="canPublish" value="Published">Yayınla</option>
+                <option v-if="canPublish" value="Scheduled">Zamanlanmış</option>
+              </select>
+              <p v-if="!canPublish" class="mt-1 text-sm text-yellow-600">
+                ⚠️ Sadece Admin ve Editor rolü makale yayınlayabilir veya zamanlayabilir
+              </p>
             </div>
 
-            <!-- Publish Date Preview -->
-            <div v-if="publishNow" class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <!-- Scheduled Date Picker -->
+            <div v-if="form.status === 'Scheduled'" class="mb-6">
+              <label for="scheduledFor" class="block text-sm font-semibold text-gray-700 mb-2">
+                Zamanlanmış Tarih
+              </label>
+              <input
+                id="scheduledFor"
+                v-model="form.scheduledFor"
+                type="datetime-local"
+                :min="minScheduledDate"
+                required
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-blue focus:border-transparent transition-soft"
+              />
+              <p class="mt-1 text-sm text-gray-500">
+                Gelecekteki bir tarih seçin
+              </p>
+            </div>
+
+            <!-- Status Preview -->
+            <div v-if="form.status === 'Published'" class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
               <p class="text-sm text-green-800">
                 <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Makale yayınlanacak: {{ formatPublishDate() }}
+                Makale hemen yayınlanacak
+              </p>
+            </div>
+            <div v-else-if="form.status === 'Scheduled' && form.scheduledFor" class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p class="text-sm text-blue-800">
+                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Makale yayınlanacak: {{ formatScheduledDate(form.scheduledFor) }}
               </p>
             </div>
 
@@ -128,7 +156,7 @@
                 :disabled="submitting"
                 class="w-full px-6 py-3 bg-gradient-to-r from-accent-orange to-accent-blue text-white rounded-lg hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
-                {{ submitting ? "Kaydediliyor..." : publishNow ? "Yayınla" : "Taslak Olarak Kaydet" }}
+                {{ submitting ? "Kaydediliyor..." : getSubmitButtonText() }}
               </button>
               <nuxt-link
                 to="/"
@@ -138,15 +166,6 @@
               </nuxt-link>
             </div>
 
-            <!-- Draft Info -->
-            <div v-if="!publishNow" class="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p class="text-sm text-yellow-800">
-                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                Makale taslak olarak kaydedilecek ve yayınlanmayacak.
-              </p>
-            </div>
           </div>
         </div>
       </div>
@@ -170,8 +189,9 @@ export default class NewArticlePage extends Vue {
     title: "",
     summary: "",
     content: "",
+    status: "Draft" as "Draft" | "Published" | "Scheduled",
+    scheduledFor: "",
   };
-  publishNow = false;
   submitting = false;
   validationErrors: string[] = [];
 
@@ -217,17 +237,64 @@ export default class NewArticlePage extends Vue {
     });
   }
 
+  get canPublish(): boolean {
+    const user = (this.$store.state as any).auth?.user;
+    return user?.role === "Admin" || user?.role === "Editor";
+  }
+
+  get minScheduledDate(): string {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + 1); // At least 1 minute in the future
+    return now.toISOString().slice(0, 16);
+  }
+
+  getSubmitButtonText(): string {
+    if (this.form.status === "Published") return "Yayınla";
+    if (this.form.status === "Scheduled") return "Zamanla";
+    return "Taslak Olarak Kaydet";
+  }
+
+  formatScheduledDate(dateStr: string): string {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("tr-TR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
   async handleSubmit() {
     this.validationErrors = [];
+    
+    // Validate scheduled date
+    if (this.form.status === "Scheduled") {
+      if (!this.form.scheduledFor) {
+        this.validationErrors.push("Zamanlanmış makale için tarih seçmelisiniz");
+        return;
+      }
+      const scheduledDate = new Date(this.form.scheduledFor);
+      if (scheduledDate <= new Date()) {
+        this.validationErrors.push("Zamanlanmış tarih gelecekte olmalıdır");
+        return;
+      }
+    }
+
     this.submitting = true;
 
     try {
-      const payload = {
+      const payload: any = {
         title: this.form.title,
         summary: this.form.summary,
         content: this.form.content,
-        publishedAt: this.publishNow ? new Date().toISOString() : null,
+        status: this.form.status,
       };
+
+      if (this.form.status === "Scheduled" && this.form.scheduledFor) {
+        payload.scheduledFor = new Date(this.form.scheduledFor).toISOString();
+      }
 
       const article = await api.createArticle(payload);
       alert("Makale başarıyla oluşturuldu!");
@@ -242,16 +309,6 @@ export default class NewArticlePage extends Vue {
     } finally {
       this.submitting = false;
     }
-  }
-
-  formatPublishDate(): string {
-    return new Date().toLocaleDateString("tr-TR", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
   }
 }
 </script>

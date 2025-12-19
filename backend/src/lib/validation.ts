@@ -7,14 +7,31 @@ export const createArticleSchema = z.object({
     .min(20, "Summary must be at least 20 characters")
     .max(280, "Summary must be at most 280 characters"),
   content: z.string().min(1, "Content is required"),
+  status: z.enum(["Draft", "Published", "Scheduled"]).optional(),
   publishedAt: z.string().datetime().optional().nullable(),
+  scheduledFor: z.string().datetime().optional().nullable(),
+  isFeatured: z.boolean().optional(),
 });
 
 export const updateArticleSchema = createArticleSchema.partial().extend({
   title: z.string().min(8).max(120).optional(),
   summary: z.string().min(20).max(280).optional(),
   content: z.string().min(1).optional(),
+  status: z.enum(["Draft", "Published", "Scheduled"]).optional(),
   publishedAt: z.string().datetime().optional().nullable(),
+  scheduledFor: z.string().datetime().optional().nullable(),
+  isFeatured: z.boolean().optional(),
+});
+
+export const reportSchema = z.object({
+  type: z.enum(["Article", "Comment"]),
+  itemId: z.string().min(1, "Item ID is required"),
+  reason: z.string().min(1, "Reason is required").max(500, "Reason too long"),
+});
+
+export const createCollaboratorSchema = z.object({
+  userId: z.string().min(1, "User ID is required"),
+  role: z.enum(["CoAuthor", "Reviewer"]),
 });
 
 export const loginSchema = z.object({

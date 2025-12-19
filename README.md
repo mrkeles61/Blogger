@@ -111,6 +111,7 @@ The backend will start on `http://localhost:4000` (or the PORT specified in `.en
 - `SESSION_COOKIE_NAME` - Cookie name for auth token (default: `auth_token`)
 - `ADMIN_EMAIL` - Admin email for seeding (default: `admin@example.com`)
 - `ADMIN_PASSWORD` - Admin password for seeding (default: `Admin123!`)
+- `PUBLISH_SCHEDULER_INTERVAL` - Interval in milliseconds for scheduled article publishing (default: 60000 = 1 minute)
 
 **Database Configuration:**
 - Default: SQLite database at `backend/prisma/dev.db`
@@ -120,13 +121,14 @@ The backend will start on `http://localhost:4000` (or the PORT specified in `.en
 
 Public endpoints:
 - `GET /health` - Health check (returns `{ "ok": true }`)
-- `GET /api/articles?search=query` - Get all articles (with optional search)
-- `GET /api/articles/:id` - Get article by ID
+- `GET /api/articles?query=search&authorId=id&status=Published&tags=tag1,tag2&dateFrom=date&dateTo=date&sort=recent|popular&page=1&limit=20` - Get articles with advanced filtering
+- `GET /api/articles/:id?preview=true` - Get article by ID (preview mode for drafts)
+- `GET /api/search/suggestions?q=query` - Get search suggestions (articles and authors)
 
 Protected endpoints (require authentication):
-- `POST /api/articles` - Create new article (any authenticated user)
+- `POST /api/articles` - Create new article with status (Draft/Published/Scheduled) and scheduledFor date
 - `GET /api/articles/my` - Get current user's articles (including drafts)
-- `PUT /api/articles/:id` - Update article (owner or Admin only)
+- `PUT /api/articles/:id` - Update article with status and scheduledFor (owner, Admin, or Editor only)
 - `DELETE /api/articles/:id` - Delete article (owner or Admin only)
 
 User endpoints:
@@ -142,8 +144,9 @@ Social endpoints:
 - `DELETE /api/articles/:id/like` - Unlike an article
 - `GET /api/articles/:id/likes` - Get article likes
 - `GET /api/articles/:id/liked` - Check if current user liked
-- `POST /api/articles/:id/comments` - Add comment
-- `GET /api/articles/:id/comments` - Get article comments
+- `POST /api/articles/:id/comments` - Add comment (supports parentId for nested replies)
+- `GET /api/articles/:id/comments` - Get article comments (with nested replies)
+- `GET /api/comments/:id/replies` - Get comment replies
 - `PUT /api/comments/:id` - Update comment (owner only)
 - `DELETE /api/comments/:id` - Delete comment (owner or Admin)
 - `POST /api/articles/:id/bookmark` - Bookmark article
@@ -152,6 +155,22 @@ Social endpoints:
 - `POST /api/users/:id/follow` - Follow a user
 - `DELETE /api/users/:id/follow` - Unfollow a user
 - `GET /api/users/:id/following-status` - Check if following
+
+Collaboration endpoints:
+- `POST /api/articles/:id/collaborators` - Add collaborator to article (owner/Admin only)
+- `DELETE /api/articles/:id/collaborators/:userId` - Remove collaborator (owner/Admin only)
+- `GET /api/articles/:id/collaborators` - Get article collaborators
+
+Analytics endpoints:
+- `GET /api/analytics/articles` - Get top articles by views/likes/comments (Admin only)
+- `GET /api/analytics/user/:id` - Get user analytics (views, likes, followers, article counts)
+- `GET /api/analytics/activity?days=30` - Get activity summary (daily article/comments/likes)
+
+Moderation endpoints:
+- `POST /api/reports` - Submit a report (Article or Comment)
+- `GET /api/moderation/reports?status=Open&page=1` - Get reports (Admin only)
+- `PUT /api/moderation/reports/:id` - Update report status and resolution notes (Admin only)
+- `GET /api/moderation/audit` - Get moderation audit trail (Admin only)
 
 Feed & Notifications:
 - `GET /api/feed` - Get activity feed (from followed users)
@@ -175,14 +194,18 @@ The web app will start on `http://localhost:3000` (default Nuxt port).
 
 **Available pages:**
 - `/` - Home page with article list, search functionality, and "New Article" button
-- `/articles/:id` - Article detail page with author card, likes, comments, bookmarks, and edit/delete actions
-- `/articles/:id/edit` - Edit article form (pre-filled with existing data, owner or Admin only)
-- `/articles/new` - Create new article form (authenticated users)
+- `/search` - Advanced search page with filters (author, date range, sort) and autocomplete suggestions
+- `/articles/:id` - Article detail page with author card, likes, comments (with nested replies), bookmarks, report button, and edit/delete actions
+- `/articles/:id/edit` - Edit article form with status (Draft/Published/Scheduled) and scheduled date picker (owner, Admin, or Editor only)
+- `/articles/new` - Create new article form with status dropdown and scheduled date picker (authenticated users)
+- `/dashboard` - Author dashboard with analytics (total articles, views, likes, followers, activity charts)
+- `/dashboard/articles` - Article management page with tabs for Drafts, Scheduled, and Published articles
+- `/dashboard/moderation` - Admin moderation panel for managing reports (auth + admin middleware required)
 - `/users/:id` - User profile page with articles, stats, follow button
 - `/users/:id/edit` - Edit profile form (self or Admin only)
 - `/feed` - Activity feed showing actions from followed users
 - `/bookmarks` - User's saved articles
-- `/notifications` - User notifications
+- `/notifications` - User notifications (includes collaborator invites, mentions, comment replies)
 - `/login` - Login page
 
 **Environment Variables:**
@@ -235,6 +258,15 @@ Each workspace has its own scripts (see respective `package.json` files).
 - ✅ Express.js API with TypeScript
 - ✅ Prisma ORM with SQLite (easy to switch to PostgreSQL)
 - ✅ Full CRUD operations for articles
+- ✅ Article status workflow (Draft, Published, Scheduled)
+- ✅ Scheduled publishing with background job
+- ✅ Advanced search with filtering (query, author, status, tags, date range, sort)
+- ✅ Search suggestions endpoint
+- ✅ Article views tracking
+- ✅ Analytics endpoints (top articles, user metrics, activity summaries)
+- ✅ Collaboration features (co-authors, reviewers)
+- ✅ Nested/threaded comments with @mentions
+- ✅ Reporting and moderation system
 - ✅ Input validation with Zod
 - ✅ Error handling middleware
 - ✅ Production-ready middleware (Helmet, CORS, rate limiting)
@@ -244,18 +276,15 @@ Each workspace has its own scripts (see respective `package.json` files).
 - ✅ Nuxt 2 with TypeScript
 - ✅ TailwindCSS styling
 - ✅ Full CRUD interface
-- ✅ Article list with search
-- ✅ Create/Edit/Delete article forms
+- ✅ Article status badges (Draft, Scheduled, Featured)
+- ✅ Article creation/editing with status dropdown and scheduled date picker
+- ✅ Dashboard pages (analytics, article management, moderation)
+- ✅ Advanced search page with filters and autocomplete
+- ✅ Nested comment threads with reply functionality
+- ✅ Report buttons for articles and comments
+- ✅ Route guards (auth, admin middleware)
 - ✅ Error handling and validation display
 - ✅ Loading and error states
-
-### Not Yet Implemented
-
-- Authentication and authorization
-- Image uploads
-- Reading list functionality
-- Advanced search/filtering
-- Pagination
 
 ### Code Formatting
 
@@ -362,13 +391,74 @@ The project uses a clean separation of concerns:
 - `utils/api.ts` - API client with TypeScript types
 - `layouts/default.vue` - Default page layout
 
+## Features
+
+### Drafts, Publishing Workflow & Scheduling
+
+- **Article Status**: Articles can be Draft, Published, or Scheduled
+- **Scheduled Publishing**: Articles can be scheduled for future publication. The backend includes a scheduler job that automatically publishes scheduled articles when their `scheduledFor` date arrives
+- **Permission Controls**: Only Admin and Editor roles can publish or schedule articles directly. Regular authors can save drafts
+- **Preview Mode**: Article owners and admins can preview draft/scheduled articles using `?preview=true` query parameter
+- **Status Filtering**: Article lists support filtering by status. Public users only see Published articles
+- **Dashboard**: `/dashboard/articles` page shows all user articles with tabs for Drafts, Scheduled, and Published
+
+### Advanced Search & Filters
+
+- **Full-text Search**: Search across article titles, summaries, and content
+- **Advanced Filters**: Filter by author, status, tags, date range, and sort by recent/popular
+- **Search Suggestions**: `/api/search/suggestions` endpoint provides autocomplete suggestions for articles and authors
+- **Search Page**: Dedicated `/search` page with filter UI and active filter summary
+
+### Analytics & Dashboards
+
+- **Views Tracking**: Article views are automatically tracked (excluding owner views)
+- **User Analytics**: `/dashboard` shows author metrics:
+  - Total articles (with breakdown by status)
+  - Total views
+  - Total likes
+  - Followers (with 30-day gain)
+  - Activity charts for last 30 days
+- **Admin Analytics**: Admin-only endpoints for global statistics and moderation queue
+- **Activity Summary**: Daily summaries of article creation, comments, and likes
+
+### Collaboration & Mentions
+
+- **Article Collaborators**: Articles can have co-authors and reviewers
+  - Co-authors can edit article content
+  - Reviewers can comment and leave notes
+- **Collaborator Management**: Invite/remove collaborators via `/api/articles/:id/collaborators` endpoints
+- **Nested Comments**: Comments support threaded replies using `parentId`
+- **@Mentions**: When a comment contains `@username`, notifications are automatically created for mentioned users
+- **Notifications**: System tracks collaborator invites, mentions, and comment replies
+
+### Moderation & Reporting
+
+- **Content Reporting**: Users can report articles or comments with a reason
+- **Report Types**: Reports can be for Articles or Comments
+- **Report Status**: Reports flow through Open → InReview → Resolved states
+- **Moderation Panel**: Admin-only `/dashboard/moderation` page for managing reports
+- **Audit Trail**: All moderation actions are logged with timestamps and admin notes
+- **Integration**: Reports integrate with notifications and analytics
+
+### Scheduled Publishing
+
+The backend includes a scheduled publishing service that runs automatically when the server is running. It checks for scheduled articles whose `scheduledFor` date has passed and publishes them.
+
+**Running the Scheduler:**
+- The scheduler runs automatically via `setInterval` when the backend server starts
+- Interval is configurable via `PUBLISH_SCHEDULER_INTERVAL` environment variable (default: 60000ms = 1 minute)
+- For production, consider using a proper job queue system (e.g., Bull, Agenda) instead
+
+**Manual Publishing:**
+You can also manually trigger scheduled publishing by calling the `publishDueArticles()` function from `src/services/publishScheduler.ts`.
+
 ## Next Steps
 
-1. Add authentication and authorization
-2. Implement image uploads
-3. Add reading list functionality
-4. Implement pagination for article list
-5. Add advanced search/filtering options
-6. Set up production deployment configurations
-7. Add API documentation (Swagger/OpenAPI)
+1. Implement image uploads
+2. Add reading list functionality
+3. Set up production deployment configurations
+4. Add API documentation (Swagger/OpenAPI)
+5. Enhance mention autocomplete in comment editor
+6. Add collaborator invite notifications UI
+7. Implement article collaboration editing UI
 

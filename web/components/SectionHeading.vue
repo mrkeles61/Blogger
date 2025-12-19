@@ -17,14 +17,27 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue, Prop } from "nuxt-property-decorator";
+import Vue from "vue";
 
-@Component
-export default class SectionHeading extends Vue {
-  @Prop({ required: true }) title!: string;
-  @Prop({ default: false }) showMoreLink!: boolean;
-  @Prop({ default: "#" }) moreLink!: string;
-  @Prop({ default: "Tümünü Gör" }) moreText!: string;
-}
+export default Vue.extend({
+  name: "SectionHeading",
+  props: {
+    title: {
+      type: String,
+      required: true,
+    },
+    showMoreLink: {
+      type: Boolean,
+      default: false,
+    },
+    moreLink: {
+      type: String,
+      default: "#",
+    },
+    moreText: {
+      type: String,
+      default: "Tümünü Gör",
+    },
+  },
+});
 </script>
-

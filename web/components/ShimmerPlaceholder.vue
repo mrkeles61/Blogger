@@ -5,12 +5,19 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue, Prop } from "nuxt-property-decorator";
+import Vue from "vue";
 
-@Component
-export default class ShimmerPlaceholder extends Vue {
-  @Prop({ default: "100%" }) width!: string;
-  @Prop({ default: "20px" }) height!: string;
-}
+export default Vue.extend({
+  name: "ShimmerPlaceholder",
+  props: {
+    width: {
+      type: String,
+      default: "100%",
+    },
+    height: {
+      type: String,
+      default: "20px",
+    },
+  },
+});
 </script>
-

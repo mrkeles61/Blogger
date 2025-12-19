@@ -1,59 +1,61 @@
-import { Module, VuexModule, Mutation, Action } from "vuex-module-decorators";
-import { api, Like, Comment, Bookmark, Follow } from "~/utils/api";
+import { api, Comment } from "~/utils/api";
 
-@Module({
-  name: "social",
-  stateFactory: true,
-  namespaced: true,
-})
-export default class SocialModule extends VuexModule {
-  likes: Record<string, boolean> = {};
-  bookmarks: Record<string, boolean> = {};
-  following: Record<string, boolean> = {};
-  comments: Record<string, Comment[]> = {};
+export const state = () => ({
+  likes: {} as Record<string, boolean>,
+  bookmarks: {} as Record<string, boolean>,
+  following: {} as Record<string, boolean>,
+  comments: {} as Record<string, Comment[]>,
+});
 
-  @Mutation
-  setLiked(payload: { articleId: string; liked: boolean }) {
-    this.likes = { ...this.likes, [payload.articleId]: payload.liked };
-  }
+export type SocialState = ReturnType<typeof state>;
 
-  @Mutation
-  setBookmarked(payload: { articleId: string; bookmarked: boolean }) {
-    this.bookmarks = { ...this.bookmarks, [payload.articleId]: payload.bookmarked };
-  }
-
-  @Mutation
-  setFollowing(payload: { userId: string; following: boolean }) {
-    this.following = { ...this.following, [payload.userId]: payload.following };
-  }
-
-  @Mutation
-  setComments(articleId: string, comments: Comment[]) {
-    this.comments = { ...this.comments, [articleId]: comments };
-  }
-
-  @Mutation
-  addComment(articleId: string, comment: Comment) {
-    const existing = this.comments[articleId] || [];
-    this.comments = {
-      ...this.comments,
-      [articleId]: [...existing, comment],
+export const mutations = {
+  setLiked(state: SocialState, payload: { articleId: string; liked: boolean }) {
+    state.likes = { ...state.likes, [payload.articleId]: payload.liked };
+  },
+  setBookmarked(state: SocialState, payload: { articleId: string; bookmarked: boolean }) {
+    state.bookmarks = { ...state.bookmarks, [payload.articleId]: payload.bookmarked };
+  },
+  setFollowing(state: SocialState, payload: { userId: string; following: boolean }) {
+    state.following = { ...state.following, [payload.userId]: payload.following };
+  },
+  setComments(state: SocialState, payload: { articleId: string; comments: Comment[] }) {
+    state.comments = { ...state.comments, [payload.articleId]: payload.comments };
+  },
+  addComment(state: SocialState, payload: { articleId: string; comment: Comment }) {
+    const existing = state.comments[payload.articleId] || [];
+    // If it's a reply, find parent and add it there
+    if (payload.comment.parentId) {
+      const updated = existing.map((c: Comment & { replies?: Comment[] }) => {
+        if (c.id === payload.comment.parentId) {
+          return { ...c, replies: [...(c.replies || []), payload.comment] };
+        }
+        return c;
+      });
+      state.comments = {
+        ...state.comments,
+        [payload.articleId]: updated,
+      };
+    } else {
+      state.comments = {
+        ...state.comments,
+        [payload.articleId]: [...existing, payload.comment],
+      };
+    }
+  },
+  removeComment(state: SocialState, payload: { articleId: string; commentId: string }) {
+    const existing = state.comments[payload.articleId] || [];
+    state.comments = {
+      ...state.comments,
+      [payload.articleId]: existing.filter((c) => c.id !== payload.commentId),
     };
-  }
+  },
+};
 
-  @Mutation
-  removeComment(articleId: string, commentId: string) {
-    const existing = this.comments[articleId] || [];
-    this.comments = {
-      ...this.comments,
-      [articleId]: existing.filter((c) => c.id !== commentId),
-    };
-  }
-
-  @Action
-  async toggleLike(articleId: string) {
-    const currentlyLiked = this.likes[articleId];
-    this.context.commit("setLiked", { articleId, liked: !currentlyLiked });
+export const actions = {
+  async toggleLike({ commit, state }: any, articleId: string) {
+    const currentlyLiked = state.likes[articleId];
+    commit("setLiked", { articleId, liked: !currentlyLiked });
 
     try {
       if (currentlyLiked) {
@@ -63,33 +65,27 @@ export default class SocialModule extends VuexModule {
       }
     } catch (error) {
       // Revert on error
-      this.context.commit("setLiked", { articleId, liked: currentlyLiked });
+      commit("setLiked", { articleId, liked: currentlyLiked });
       throw error;
     }
-  }
-
-  @Action
-  async checkLikeStatus(articleId: string) {
+  },
+  async checkLikeStatus({ commit }: any, articleId: string) {
     try {
       const { liked } = await api.hasUserLiked(articleId);
-      this.context.commit("setLiked", { articleId, liked });
+      commit("setLiked", { articleId, liked });
     } catch (error) {
       // Not authenticated or error
-      this.context.commit("setLiked", { articleId, liked: false });
+      commit("setLiked", { articleId, liked: false });
     }
-  }
-
-  @Action
-  async checkBookmarkStatus(articleId: string) {
+  },
+  async checkBookmarkStatus({ commit }: any, articleId: string) {
     // Note: API doesn't have a direct check endpoint, so we'll infer from bookmarks list
     // For now, we'll just set to false and let toggle handle it
-    this.context.commit("setBookmarked", { articleId, bookmarked: false });
-  }
-
-  @Action
-  async toggleBookmark(articleId: string) {
-    const currentlyBookmarked = this.bookmarks[articleId];
-    this.context.commit("setBookmarked", { articleId, bookmarked: !currentlyBookmarked });
+    commit("setBookmarked", { articleId, bookmarked: false });
+  },
+  async toggleBookmark({ commit, state }: any, articleId: string) {
+    const currentlyBookmarked = state.bookmarks[articleId];
+    commit("setBookmarked", { articleId, bookmarked: !currentlyBookmarked });
 
     try {
       if (currentlyBookmarked) {
@@ -98,15 +94,13 @@ export default class SocialModule extends VuexModule {
         await api.bookmarkArticle(articleId);
       }
     } catch (error) {
-      this.context.commit("setBookmarked", { articleId, bookmarked: currentlyBookmarked });
+      commit("setBookmarked", { articleId, bookmarked: currentlyBookmarked });
       throw error;
     }
-  }
-
-  @Action
-  async toggleFollow(userId: string) {
-    const currentlyFollowing = this.following[userId];
-    this.context.commit("setFollowing", { userId, following: !currentlyFollowing });
+  },
+  async toggleFollow({ commit, state }: any, userId: string) {
+    const currentlyFollowing = state.following[userId];
+    commit("setFollowing", { userId, following: !currentlyFollowing });
 
     try {
       if (currentlyFollowing) {
@@ -115,53 +109,35 @@ export default class SocialModule extends VuexModule {
         await api.followUser(userId);
       }
     } catch (error) {
-      this.context.commit("setFollowing", { userId, following: currentlyFollowing });
+      commit("setFollowing", { userId, following: currentlyFollowing });
       throw error;
     }
-  }
-
-  @Action
-  async checkFollowStatus(userId: string) {
+  },
+  async checkFollowStatus({ commit }: any, userId: string) {
     try {
       const { following } = await api.isFollowing(userId);
-      this.context.commit("setFollowing", { userId, following });
+      commit("setFollowing", { userId, following });
     } catch (error) {
-      this.context.commit("setFollowing", { userId, following: false });
+      commit("setFollowing", { userId, following: false });
     }
-  }
-
-  @Action
-  async loadComments(articleId: string) {
+  },
+  async loadComments({ commit }: any, articleId: string) {
     const comments = await api.getArticleComments(articleId);
-    this.context.commit("setComments", articleId, comments);
-  }
+    commit("setComments", { articleId, comments });
+  },
+  async addComment({ commit }: any, payload: { articleId: string; content: string; parentId?: string | null }) {
+    const comment = await api.addComment(payload.articleId, payload.content, payload.parentId);
+    commit("addComment", { articleId: payload.articleId, comment });
+  },
+  async deleteComment({ commit }: any, payload: { articleId: string; commentId: string }) {
+    await api.deleteComment(payload.commentId);
+    commit("removeComment", payload);
+  },
+};
 
-  @Action
-  async addComment({ articleId, content }: { articleId: string; content: string }) {
-    const comment = await api.addComment(articleId, content);
-    this.context.commit("addComment", articleId, comment);
-  }
-
-  @Action
-  async deleteComment({ articleId, commentId }: { articleId: string; commentId: string }) {
-    await api.deleteComment(commentId);
-    this.context.commit("removeComment", articleId, commentId);
-  }
-
-  get isLiked() {
-    return (articleId: string) => this.likes[articleId] || false;
-  }
-
-  get isBookmarked() {
-    return (articleId: string) => this.bookmarks[articleId] || false;
-  }
-
-  get isFollowingUser() {
-    return (userId: string) => this.following[userId] || false;
-  }
-
-  get getComments() {
-    return (articleId: string) => this.comments[articleId] || [];
-  }
-}
-
+export const getters = {
+  isLiked: (state: SocialState) => (articleId: string) => state.likes[articleId] || false,
+  isBookmarked: (state: SocialState) => (articleId: string) => state.bookmarks[articleId] || false,
+  isFollowingUser: (state: SocialState) => (userId: string) => state.following[userId] || false,
+  getComments: (state: SocialState) => (articleId: string) => state.comments[articleId] || [],
+};

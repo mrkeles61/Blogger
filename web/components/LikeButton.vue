@@ -29,45 +29,55 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue, Prop } from "nuxt-property-decorator";
+import Vue from "vue";
 
-@Component
-export default class LikeButton extends Vue {
-  @Prop({ required: true }) articleId!: string;
-  @Prop({ default: 0 }) likeCount!: number;
-
-  loading = false;
-
+export default Vue.extend({
+  name: "LikeButton",
+  props: {
+    articleId: {
+      type: String,
+      required: true,
+    },
+    likeCount: {
+      type: Number,
+      default: 0,
+    },
+  },
+  data() {
+    return {
+      loading: false,
+    };
+  },
+  computed: {
+    isAuthenticated(): boolean {
+      return this.$store.getters["auth/isAuthenticated"];
+    },
+    isLiked(): boolean {
+      return this.$store.getters["social/isLiked"](this.articleId);
+    },
+  },
   async mounted() {
     if (this.isAuthenticated) {
       await this.$store.dispatch("social/checkLikeStatus", this.articleId);
     }
-  }
+  },
+  methods: {
+    async handleClick() {
+      if (!this.isAuthenticated) {
+        this.$router.push("/login");
+        return;
+      }
 
-  async handleClick() {
-    if (!this.isAuthenticated) {
-      this.$router.push("/login");
-      return;
-    }
-
-    this.loading = true;
-    try {
-      await this.$store.dispatch("social/toggleLike", this.articleId);
-      this.$emit("liked");
-    } catch (err: any) {
-      alert(`Failed to ${this.isLiked ? "unlike" : "like"}: ${err.message}`);
-    } finally {
-      this.loading = false;
-    }
-  }
-
-  get isAuthenticated() {
-    return this.$store.getters["auth/isAuthenticated"];
-  }
-
-  get isLiked() {
-    return this.$store.getters["social/isLiked"](this.articleId);
-  }
-}
+      this.loading = true;
+      try {
+        await this.$store.dispatch("social/toggleLike", this.articleId);
+        this.$emit("liked");
+      } catch (err: any) {
+        alert(`Failed to ${this.isLiked ? "unlike" : "like"}: ${err.message}`);
+      } finally {
+        this.loading = false;
+      }
+    },
+  },
+});
 </script>
-

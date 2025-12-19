@@ -44,20 +44,32 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue, Prop } from "nuxt-property-decorator";
+import Vue, { PropType } from "vue";
 import { Article } from "~/utils/api";
 
-@Component
-export default class HeroCarousel extends Vue {
-  @Prop({ required: true }) title!: string;
-  @Prop({ required: true }) subtitle!: string;
-  @Prop({ default: () => [] }) articles!: Article[];
-
-  formatDate(dateString: string): string {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("tr-TR", { month: "short", day: "numeric" });
-  }
-}
+export default Vue.extend({
+  name: "HeroCarousel",
+  props: {
+    title: {
+      type: String,
+      required: true,
+    },
+    subtitle: {
+      type: String,
+      required: true,
+    },
+    articles: {
+      type: Array as PropType<Article[]>,
+      default: () => [],
+    },
+  },
+  methods: {
+    formatDate(dateString: string): string {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("tr-TR", { month: "short", day: "numeric" });
+    },
+  },
+});
 </script>
 
 <style scoped>
@@ -69,4 +81,3 @@ export default class HeroCarousel extends Vue {
   display: none;
 }
 </style>
-
