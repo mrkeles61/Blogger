@@ -1,11 +1,11 @@
 import { z } from "zod";
 
 export const createArticleSchema = z.object({
-  title: z.string().min(8, "Title must be at least 8 characters").max(120, "Title must be at most 120 characters"),
+  title: z.string().min(1, "Title is required").max(500, "Title must be at most 500 characters"),
   summary: z
     .string()
-    .min(20, "Summary must be at least 20 characters")
-    .max(280, "Summary must be at most 280 characters"),
+    .min(1, "Summary is required")
+    .max(500, "Summary must be at most 500 characters"),
   content: z.string().min(1, "Content is required"),
   status: z.enum(["Draft", "Published", "Scheduled"]).optional(),
   publishedAt: z.string().datetime().optional().nullable(),
@@ -14,8 +14,8 @@ export const createArticleSchema = z.object({
 });
 
 export const updateArticleSchema = createArticleSchema.partial().extend({
-  title: z.string().min(8).max(120).optional(),
-  summary: z.string().min(20).max(280).optional(),
+  title: z.string().min(1).max(500).optional(),
+  summary: z.string().min(1).max(500).optional(),
   content: z.string().min(1).optional(),
   status: z.enum(["Draft", "Published", "Scheduled"]).optional(),
   publishedAt: z.string().datetime().optional().nullable(),

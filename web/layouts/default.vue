@@ -290,7 +290,6 @@ export default Vue.extend({
       try {
         const loaded = await api.getNotifications(false);
         this.notifications = loaded;
-        this.$store.dispatch("feed/loadNotifications", false);
       } catch (err) {
         console.error("Failed to load notifications:", err);
       } finally {

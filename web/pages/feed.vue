@@ -78,62 +78,65 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue } from "nuxt-property-decorator";
+import Vue from "vue";
 import { ActivityLog } from "~/utils/api";
 import { api } from "~/utils/api";
 
-@Component({
+export default Vue.extend({
+  name: "FeedPage",
   middleware: "auth",
-})
-export default class FeedPage extends Vue {
-  activities: ActivityLog[] = [];
-  loading = true;
-  loadingMore = false;
-  error: string | null = null;
-  selectedFilter = "all";
-  limit = 20;
-
-  filters = [
-    { type: "all", label: "Tümü" },
-    { type: "article_created", label: "Makale" },
-    { type: "comment_added", label: "Yorum" },
-    { type: "article_liked", label: "Beğeni" },
-  ];
-
+  data() {
+    return {
+      activities: [] as ActivityLog[],
+      loading: true,
+      loadingMore: false,
+      error: null as string | null,
+      selectedFilter: "all",
+      limit: 20,
+      filters: [
+        { type: "all", label: "Tümü" },
+        { type: "article_created", label: "Makale" },
+        { type: "comment_added", label: "Yorum" },
+        { type: "article_liked", label: "Beğeni" },
+      ],
+    };
+  },
+  computed: {
+    filteredActivities(): ActivityLog[] {
+      if (this.selectedFilter === "all") {
+        return this.activities;
+      }
+      return this.activities.filter((a) => a.type === this.selectedFilter);
+    },
+  },
   async fetch() {
     await this.loadFeed();
-  }
-
-  async loadFeed() {
-    this.loading = true;
-    this.error = null;
-    try {
-      this.activities = await api.getFeed(this.limit);
-    } catch (err: any) {
-      this.error = err.message || "Failed to load feed";
-    } finally {
-      this.loading = false;
-    }
-  }
-
-  async loadMore() {
-    this.loadingMore = true;
-    try {
-      const more = await api.getFeed(this.limit);
-      this.activities = [...this.activities, ...more];
-      this.limit += 20;
-    } catch (err: any) {
-      console.error("Failed to load more:", err);
-    } finally {
-      this.loadingMore = false;
-    }
-  }
-
-  get filteredActivities(): ActivityLog[] {
-    if (this.selectedFilter === "all") {
-      return this.activities;
-    }
-    return this.activities.filter((a) => a.type === this.selectedFilter);
-  }
-}
+  },
+  methods: {
+    async loadFeed() {
+      this.loading = true;
+      this.error = null;
+      try {
+        this.activities = await api.getFeed(this.limit);
+      } catch (err: any) {
+        console.error("Feed load error:", err);
+        this.error = err.message || "Aktivite akışı yüklenemedi";
+      } finally {
+        this.loading = false;
+      }
+    },
+    async loadMore() {
+      this.loadingMore = true;
+      try {
+        const more = await api.getFeed(this.limit);
+        this.activities = [...this.activities, ...more];
+        this.limit += 20;
+      } catch (err: any) {
+        console.error("Failed to load more:", err);
+      } finally {
+        this.loadingMore = false;
+      }
+    },
+  },
+});
 </script>

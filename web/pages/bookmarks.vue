@@ -68,58 +68,60 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue } from "nuxt-property-decorator";
+import Vue from "vue";
 import { api, Bookmark } from "~/utils/api";
-import ArticleCard from "~/components/ArticleCard.vue";
-import ShimmerPlaceholder from "~/components/ShimmerPlaceholder.vue";
 
-@Component({
-  components: {
-    ArticleCard,
-    ShimmerPlaceholder,
-  },
+export default Vue.extend({
+  name: "BookmarksPage",
   middleware: "auth",
-})
-export default class BookmarksPage extends Vue {
-  bookmarks: Bookmark[] = [];
-  loading = true;
-
+  data() {
+    return {
+      bookmarks: [] as Bookmark[],
+      loading: true,
+    };
+  },
   async fetch() {
     await this.loadBookmarks();
-  }
+  },
+  methods: {
+    async loadBookmarks() {
+      this.loading = true;
+      try {
+        this.bookmarks = await api.getBookmarks();
+        // Update store with bookmark statuses
+        for (const bookmark of this.bookmarks) {
+          this.$store.commit("social/setBookmarked", {
+            articleId: bookmark.article.id,
+            bookmarked: true,
+          });
+        }
+      } catch (err: any) {
+        console.error("Failed to load bookmarks:", err);
+      } finally {
+        this.loading = false;
+      }
+    },
+    async handleUnbookmark(articleId: string) {
+      if (!confirm("Bu makaleyi kayıtlılarınızdan kaldırmak istediğinizden emin misiniz?")) {
+        return;
+      }
 
-  async loadBookmarks() {
-    this.loading = true;
-    try {
-      this.bookmarks = await api.getBookmarks();
-    } catch (err: any) {
-      console.error("Failed to load bookmarks:", err);
-    } finally {
-      this.loading = false;
-    }
-  }
-
-  async handleUnbookmark(articleId: string) {
-    if (!confirm("Bu makaleyi kayıtlılarınızdan kaldırmak istediğinizden emin misiniz?")) {
-      return;
-    }
-
-    try {
-      await api.unbookmarkArticle(articleId);
-      await this.$store.dispatch("social/toggleBookmark", articleId);
-      await this.loadBookmarks();
-    } catch (err: any) {
-      alert(`Kayıt kaldırılamadı: ${err.message}`);
-    }
-  }
-
-  formatDate(dateString: string): string {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("tr-TR", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  }
-}
+      try {
+        await api.unbookmarkArticle(articleId);
+        await this.$store.dispatch("social/toggleBookmark", articleId);
+        await this.loadBookmarks();
+      } catch (err: any) {
+        alert(`Kayıt kaldırılamadı: ${err.message}`);
+      }
+    },
+    formatDate(dateString: string): string {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("tr-TR", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    },
+  },
+});
 </script>

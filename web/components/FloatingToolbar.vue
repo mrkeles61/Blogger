@@ -1,6 +1,7 @@
 <template>
   <div class="bg-white rounded-lg shadow-lg p-2 flex items-center gap-2 border border-gray-200 mb-2">
     <button
+      type="button"
       @click="handleFormat('bold')"
       class="p-2 hover:bg-gray-100 rounded transition-soft"
       title="Bold"
@@ -12,6 +13,7 @@
       </svg>
     </button>
     <button
+      type="button"
       @click="handleFormat('italic')"
       class="p-2 hover:bg-gray-100 rounded transition-soft"
       title="Italic"
@@ -23,6 +25,7 @@
     </button>
     <div class="w-px h-6 bg-gray-300"></div>
     <button
+      type="button"
       @click="handleFormat('list')"
       class="p-2 hover:bg-gray-100 rounded transition-soft"
       title="List"
@@ -33,6 +36,7 @@
       </svg>
     </button>
     <button
+      type="button"
       @click="handleFormat('link')"
       class="p-2 hover:bg-gray-100 rounded transition-soft"
       title="Link"

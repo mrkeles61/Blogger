@@ -11,7 +11,7 @@ const COOKIE_NAME = process.env.SESSION_COOKIE_NAME || "auth_token";
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
-  sameSite: "strict" as const,
+  sameSite: (process.env.NODE_ENV === "production" ? "strict" : "lax") as const,
   maxAge: 24 * 60 * 60 * 1000, // 1 day
 };
 

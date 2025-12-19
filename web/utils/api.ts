@@ -182,24 +182,29 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
-  // Add timeout to prevent hanging
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+  // Only use AbortController in browser (not during SSR)
+  let controller: AbortController | null = null;
+  let timeoutId: NodeJS.Timeout | null = null;
+
+  if (typeof window !== "undefined" && typeof AbortController !== "undefined") {
+    controller = new AbortController();
+    timeoutId = setTimeout(() => controller!.abort(), 12000); // 12 second timeout
+  }
 
   try {
     const response = await fetch(url, {
       ...fetchOptions,
       ...options,
-      signal: controller.signal,
+      signal: controller?.signal,
       headers: {
         ...fetchOptions.headers,
         ...options.headers,
       },
     });
-    clearTimeout(timeoutId);
+    if (timeoutId) clearTimeout(timeoutId);
     return response;
   } catch (error: any) {
-    clearTimeout(timeoutId);
+    if (timeoutId) clearTimeout(timeoutId);
     if (error.name === "AbortError") {
       throw new Error("Request timeout - backend may be unavailable");
     }

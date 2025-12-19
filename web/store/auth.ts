@@ -25,6 +25,10 @@ export const actions = {
       const response = await api.login(email, password);
       commit("setUser", response.user);
       return response.user;
+    } catch (error: any) {
+      // Re-throw with better error message
+      const errorMessage = error.message || "Giriş başarısız. Lütfen bilgilerinizi kontrol edin.";
+      throw new Error(errorMessage);
     } finally {
       commit("setLoading", false);
     }
@@ -39,13 +43,20 @@ export const actions = {
     }
   },
   async fetchCurrentUser({ commit }: any) {
+    commit("setLoading", true);
     try {
       const response = await api.getCurrentUser();
       commit("setUser", response.user);
       return response.user;
-    } catch (error) {
-      commit("setUser", null);
+    } catch (error: any) {
+      // Only clear user if backend confirms session is invalid (401)
+      // Network errors or timeouts should not clear state
+      if (error?.status === 401 || error?.message?.includes("401")) {
+        commit("setUser", null);
+      }
       throw error;
+    } finally {
+      commit("setLoading", false);
     }
   },
 };

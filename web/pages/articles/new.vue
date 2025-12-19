@@ -26,7 +26,7 @@
         <!-- Main Editor Column -->
         <div class="lg:col-span-2 space-y-6">
           <div class="bg-white rounded-xl shadow-sm p-6 md:p-8">
-            <form @submit.prevent="handleSubmit" class="space-y-6">
+            <form id="article-form" @submit.prevent="handleSubmit" class="space-y-6">
               <!-- Title -->
               <div>
                 <label for="title" class="block text-sm font-semibold text-gray-700 mb-2">
@@ -174,141 +174,134 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue } from "nuxt-property-decorator";
+import Vue from "vue";
 import { api } from "~/utils/api";
-import FloatingToolbar from "~/components/FloatingToolbar.vue";
 
-@Component({
-  components: {
-    FloatingToolbar,
-  },
+export default Vue.extend({
+  name: "NewArticlePage",
   middleware: "auth",
-})
-export default class NewArticlePage extends Vue {
-  form = {
-    title: "",
-    summary: "",
-    content: "",
-    status: "Draft" as "Draft" | "Published" | "Scheduled",
-    scheduledFor: "",
-  };
-  submitting = false;
-  validationErrors: string[] = [];
+  data() {
+    return {
+      form: {
+        title: "",
+        summary: "",
+        content: "",
+        status: "Draft" as "Draft" | "Published" | "Scheduled",
+        scheduledFor: "",
+      },
+      submitting: false,
+      validationErrors: [] as string[],
+    };
+  },
+  computed: {
+    canPublish(): boolean {
+      const user = (this.$store.state as any).auth?.user;
+      return user?.role === "Admin" || user?.role === "Editor";
+    },
+    minScheduledDate(): string {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() + 1); // At least 1 minute in the future
+      return now.toISOString().slice(0, 16);
+    },
+  },
+  methods: {
+    handleFormat(formatType: string) {
+      const textarea = this.$refs.contentTextarea as HTMLTextAreaElement;
+      if (!textarea) return;
 
-  $refs!: {
-    contentTextarea: HTMLTextAreaElement;
-  };
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selectedText = this.form.content.substring(start, end);
+      let replacement = "";
 
-  handleFormat(formatType: string) {
-    const textarea = this.$refs.contentTextarea;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = this.form.content.substring(start, end);
-    let replacement = "";
-
-    switch (formatType) {
-      case "bold":
-        replacement = `**${selectedText || "bold text"}**`;
-        break;
-      case "italic":
-        replacement = `*${selectedText || "italic text"}*`;
-        break;
-      case "list":
-        replacement = selectedText
-          ? selectedText
-              .split("\n")
-              .map((line) => `- ${line}`)
-              .join("\n")
-          : "- List item";
-        break;
-      case "link":
-        replacement = `[${selectedText || "link text"}](url)`;
-        break;
-    }
-
-    this.form.content =
-      this.form.content.substring(0, start) + replacement + this.form.content.substring(end);
-    this.$nextTick(() => {
-      textarea.focus();
-      const newCursorPos = start + replacement.length;
-      textarea.setSelectionRange(newCursorPos, newCursorPos);
-    });
-  }
-
-  get canPublish(): boolean {
-    const user = (this.$store.state as any).auth?.user;
-    return user?.role === "Admin" || user?.role === "Editor";
-  }
-
-  get minScheduledDate(): string {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() + 1); // At least 1 minute in the future
-    return now.toISOString().slice(0, 16);
-  }
-
-  getSubmitButtonText(): string {
-    if (this.form.status === "Published") return "Yayınla";
-    if (this.form.status === "Scheduled") return "Zamanla";
-    return "Taslak Olarak Kaydet";
-  }
-
-  formatScheduledDate(dateStr: string): string {
-    if (!dateStr) return "";
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("tr-TR", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
-
-  async handleSubmit() {
-    this.validationErrors = [];
-    
-    // Validate scheduled date
-    if (this.form.status === "Scheduled") {
-      if (!this.form.scheduledFor) {
-        this.validationErrors.push("Zamanlanmış makale için tarih seçmelisiniz");
-        return;
-      }
-      const scheduledDate = new Date(this.form.scheduledFor);
-      if (scheduledDate <= new Date()) {
-        this.validationErrors.push("Zamanlanmış tarih gelecekte olmalıdır");
-        return;
-      }
-    }
-
-    this.submitting = true;
-
-    try {
-      const payload: any = {
-        title: this.form.title,
-        summary: this.form.summary,
-        content: this.form.content,
-        status: this.form.status,
-      };
-
-      if (this.form.status === "Scheduled" && this.form.scheduledFor) {
-        payload.scheduledFor = new Date(this.form.scheduledFor).toISOString();
+      switch (formatType) {
+        case "bold":
+          replacement = `**${selectedText || "bold text"}**`;
+          break;
+        case "italic":
+          replacement = `*${selectedText || "italic text"}*`;
+          break;
+        case "list":
+          replacement = selectedText
+            ? selectedText
+                .split("\n")
+                .map((line) => `- ${line}`)
+                .join("\n")
+            : "- List item";
+          break;
+        case "link":
+          replacement = `[${selectedText || "link text"}](url)`;
+          break;
       }
 
-      const article = await api.createArticle(payload);
-      alert("Makale başarıyla oluşturuldu!");
-      this.$router.push(`/articles/${article.id}`);
-    } catch (err: any) {
-      if (err.details && Array.isArray(err.details)) {
-        this.validationErrors = err.details.map((d: any) => `${d.path}: ${d.message}`);
-      } else {
-        this.validationErrors = [err.message || "Makale oluşturulamadı"];
+      this.form.content =
+        this.form.content.substring(0, start) + replacement + this.form.content.substring(end);
+      this.$nextTick(() => {
+        textarea.focus();
+        const newCursorPos = start + replacement.length;
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+      });
+    },
+    getSubmitButtonText(): string {
+      if (this.form.status === "Published") return "Yayınla";
+      if (this.form.status === "Scheduled") return "Zamanla";
+      return "Taslak Olarak Kaydet";
+    },
+    formatScheduledDate(dateStr: string): string {
+      if (!dateStr) return "";
+      const date = new Date(dateStr);
+      return date.toLocaleDateString("tr-TR", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    },
+    async handleSubmit() {
+      this.validationErrors = [];
+      
+      // Validate scheduled date
+      if (this.form.status === "Scheduled") {
+        if (!this.form.scheduledFor) {
+          this.validationErrors.push("Zamanlanmış makale için tarih seçmelisiniz");
+          return;
+        }
+        const scheduledDate = new Date(this.form.scheduledFor);
+        if (scheduledDate <= new Date()) {
+          this.validationErrors.push("Zamanlanmış tarih gelecekte olmalıdır");
+          return;
+        }
       }
-      console.error("Error creating article:", err);
-    } finally {
-      this.submitting = false;
-    }
-  }
-}
+
+      this.submitting = true;
+
+      try {
+        const payload: any = {
+          title: this.form.title,
+          summary: this.form.summary,
+          content: this.form.content,
+          status: this.form.status,
+        };
+
+        if (this.form.status === "Scheduled" && this.form.scheduledFor) {
+          payload.scheduledFor = new Date(this.form.scheduledFor).toISOString();
+        }
+
+        const article = await api.createArticle(payload);
+        alert("Makale başarıyla oluşturuldu!");
+        this.$router.push(`/articles/${article.id}`);
+      } catch (err: any) {
+        if (err.details && Array.isArray(err.details)) {
+          this.validationErrors = err.details.map((d: any) => `${d.path}: ${d.message}`);
+        } else {
+          this.validationErrors = [err.message || "Makale oluşturulamadı"];
+        }
+        console.error("Error creating article:", err);
+      } finally {
+        this.submitting = false;
+      }
+    },
+  },
+});
 </script>

@@ -77,12 +77,12 @@
           </span>
         </div>
         <button
-          v-if="showBookmark"
-          @click.stop="$emit('bookmark')"
+          v-if="showBookmark && $store.getters['auth/isAuthenticated']"
+          @click.stop="handleBookmark"
           class="text-gray-400 hover:text-accent-orange transition-soft"
-          :class="{ 'text-accent-orange': isBookmarked }"
+          :class="{ 'text-accent-orange': bookmarkStatus }"
         >
-          <svg class="w-5 h-5" :fill="isBookmarked ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5" :fill="bookmarkStatus ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
           </svg>
         </button>
@@ -104,7 +104,7 @@ export default Vue.extend({
     },
     showBookmark: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     isBookmarked: {
       type: Boolean,
@@ -115,7 +115,25 @@ export default Vue.extend({
       default: false,
     },
   },
+  computed: {
+    bookmarkStatus(): boolean {
+      // If isBookmarked prop is explicitly provided, use it
+      // Otherwise, check from store if authenticated
+      if (this.isBookmarked !== false || !this.$store.getters["auth/isAuthenticated"]) {
+        return this.isBookmarked;
+      }
+      return this.$store.getters["social/isBookmarked"](this.article.id);
+    },
+  },
   methods: {
+    async handleBookmark() {
+      try {
+        await this.$store.dispatch("social/toggleBookmark", this.article.id);
+        this.$emit("bookmark", this.article.id);
+      } catch (err: any) {
+        console.error("Failed to toggle bookmark:", err);
+      }
+    },
     formatDate(dateString: string): string {
       const date = new Date(dateString);
       const now = new Date();

@@ -22,8 +22,10 @@ export default {
   // Global CSS
   css: ['~/assets/css/main.css'],
 
-  // Plugins
-  plugins: ["~/plugins/auth.client.ts"],
+  // Plugins - auth.client.ts must run before middleware
+  plugins: [
+    { src: "~/plugins/auth.client.ts", mode: "client" },
+  ],
 
   // Auto import components
   components: true,

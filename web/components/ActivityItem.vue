@@ -71,16 +71,6 @@ export default Vue.extend({
     },
   },
   methods: {
-    getActivityIconBg(type: string): string {
-      const bgMap: Record<string, string> = {
-        article_created: "bg-blue-100 text-blue-600",
-        article_liked: "bg-red-100 text-red-600",
-        comment_added: "bg-green-100 text-green-600",
-        article_bookmarked: "bg-yellow-100 text-yellow-600",
-        user_followed: "bg-purple-100 text-purple-600",
-      };
-      return bgMap[type] || "bg-gray-100 text-gray-600";
-    },
     formatDate(dateString: string): string {
       const date = new Date(dateString);
       const now = new Date();

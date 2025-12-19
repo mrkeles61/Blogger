@@ -55,9 +55,10 @@ export async function listArticles(filters: ListArticlesFilters = {}) {
     }
   } else if (onlyPublished) {
     // Public users only see Published articles
-      where.status = "Published";
+    where.status = "Published";
     where.publishedAt = { not: null };
   }
+  // If onlyPublished is false and no status specified, show all statuses (for /my endpoint)
 
   // Date range filter
   if (dateFrom || dateTo) {

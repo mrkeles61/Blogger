@@ -323,7 +323,9 @@ export default class UserProfilePage extends Vue {
   async loadArticles(idOrUsername: string) {
     this.articlesLoading = true;
     try {
-      this.articles = await api.getUserArticles(idOrUsername);
+      // Include drafts if viewing own profile
+      const includeDrafts = this.isOwnProfile;
+      this.articles = await api.getUserArticles(idOrUsername, includeDrafts);
     } catch (err: any) {
       console.error("Failed to load articles:", err);
     } finally {

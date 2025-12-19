@@ -136,10 +136,13 @@ export default Vue.extend({
         this.$router.push("/");
       } catch (err: any) {
         // Better error handling for network errors
+        console.error("Login error:", err);
         if (err.message && err.message.includes("timeout")) {
           this.error = "Backend sunucusu çalışmıyor. Lütfen backend'in başlatıldığından emin olun.";
         } else if (err.message && err.message.includes("Failed to fetch")) {
           this.error = "Backend sunucusuna bağlanılamıyor. Lütfen backend'in çalıştığından emin olun.";
+        } else if (err.message && err.message.includes("Invalid email or password")) {
+          this.error = "Geçersiz email veya şifre. Lütfen bilgilerinizi kontrol edin.";
         } else {
           this.error = err.message || "Giriş başarısız. Lütfen bilgilerinizi kontrol edin.";
         }
