@@ -58,6 +58,7 @@ articlesRouter.get(
     const userId = req.user?.id;
 
     const article = await getArticleById(id, true, preview, userId);
+    console.log(`[DEBUG] GET /api/articles/${id} - Initial article comment count: ${article._count?.comments}`);
 
     // Increment view count (unless it's the author)
     if (!preview && article.status === "Published") {
@@ -65,9 +66,11 @@ articlesRouter.get(
       await incrementArticleView(id, userId, ip);
       // Refresh article to get updated view count
       const updated = await getArticleById(id, true, false, userId);
+      console.log(`[DEBUG] GET /api/articles/${id} - After view increment, comment count: ${updated._count?.comments}`);
       return res.json(updated);
     }
 
+    console.log(`[DEBUG] GET /api/articles/${id} - Returning article with comment count: ${article._count?.comments}`);
     res.json(article);
   })
 );

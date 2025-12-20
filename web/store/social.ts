@@ -126,12 +126,15 @@ export const actions = {
     commit("setComments", { articleId, comments });
   },
   async addComment({ commit }: any, payload: { articleId: string; content: string; parentId?: string | null }) {
-    const comment = await api.addComment(payload.articleId, payload.content, payload.parentId);
+    const result = await api.addComment(payload.articleId, payload.content, payload.parentId);
+    const { articleCommentCount, ...comment } = result;
     commit("addComment", { articleId: payload.articleId, comment });
+    return { comment, articleCommentCount };
   },
   async deleteComment({ commit }: any, payload: { articleId: string; commentId: string }) {
-    await api.deleteComment(payload.commentId);
+    const result = await api.deleteComment(payload.commentId);
     commit("removeComment", payload);
+    return result;
   },
 };
 

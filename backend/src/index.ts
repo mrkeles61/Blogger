@@ -92,12 +92,16 @@ app.use(
 app.use(cookieParser());
 app.use(express.json());
 
-// Rate limiting
+// Rate limiting - 500 requests per 15 minutes for all environments
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 500, // 500 requests per 15 minutes
+  message: "Too many requests from this IP, please try again later.",
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
 app.use("/api/", limiter);
+console.log("[INFO] Rate limiting enabled: 500 requests per 15 minutes");
 
 // Routes
 app.get("/health", (req, res) => {

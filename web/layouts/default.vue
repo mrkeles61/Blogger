@@ -83,10 +83,10 @@
               </button>
 
               <!-- User Menu -->
-              <div v-if="user && user.id" class="relative">
-                <nuxt-link
-                  :to="`/users/${user.id}`"
-                  class="flex items-center gap-2 hover:opacity-80 transition-soft"
+              <div v-if="user && user.id" class="relative" v-click-outside="closeUserMenu">
+                <button
+                  @click="showUserMenu = !showUserMenu"
+                  class="flex items-center gap-2 hover:opacity-80 transition-soft focus:outline-none focus:ring-2 focus:ring-accent-orange focus:ring-offset-2 rounded-full"
                 >
                   <img
                     v-if="user.avatarUrl"
@@ -100,7 +100,35 @@
                   >
                     {{ (user.displayName || user.username || "U")[0].toUpperCase() }}
                   </div>
-                </nuxt-link>
+                </button>
+
+                <!-- Dropdown Menu -->
+                <div
+                  v-if="showUserMenu"
+                  class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
+                >
+                  <nuxt-link
+                    :to="`/users/${user.id}`"
+                    @click.native="closeUserMenu"
+                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-soft"
+                  >
+                    <div class="flex items-center gap-2">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      <span>Profil</span>
+                    </div>
+                  </nuxt-link>
+                  <button
+                    @click="handleLogout"
+                    class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-soft flex items-center gap-2"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span>Çıkış Yap</span>
+                  </button>
+                </div>
               </div>
 
               <!-- New Article Button -->
@@ -229,6 +257,7 @@ export default Vue.extend({
   data() {
     return {
       showNotifications: false,
+      showUserMenu: false,
       searchQuery: "",
       notifications: [] as Notification[],
       notificationsLoading: false,
@@ -305,6 +334,35 @@ export default Vue.extend({
       } finally {
         this.notificationsLoading = false;
       }
+    },
+    closeUserMenu() {
+      this.showUserMenu = false;
+    },
+    async handleLogout() {
+      this.closeUserMenu();
+      try {
+        await this.$store.dispatch("auth/logout");
+        this.$router.push("/login");
+      } catch (error) {
+        console.error("Logout failed:", error);
+        // Still redirect to login even if logout API call fails
+        this.$router.push("/login");
+      }
+    },
+  },
+  directives: {
+    "click-outside": {
+      bind(el: any, binding: any, vnode: any) {
+        el.clickOutsideEvent = (event: Event) => {
+          if (!(el === event.target || el.contains(event.target))) {
+            vnode.context[binding.expression](event);
+          }
+        };
+        document.addEventListener("click", el.clickOutsideEvent);
+      },
+      unbind(el: any) {
+        document.removeEventListener("click", el.clickOutsideEvent);
+      },
     },
   },
 });

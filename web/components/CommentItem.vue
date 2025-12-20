@@ -1,5 +1,5 @@
 <template>
-  <div class="comment-item" :class="{ 'ml-8': comment.parentId }">
+  <div ref="commentContainer" class="comment-item" :class="{ 'ml-8': comment.parentId }">
     <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-soft">
       <div class="flex items-start gap-3">
         <img
@@ -58,13 +58,67 @@
                 Düzenle
               </button>
               <button
-                @click="handleDelete"
+                @click="showDeleteConfirm = true"
                 class="text-sm text-red-600 hover:text-red-700"
               >
                 Sil
               </button>
             </div>
           </div>
+
+          <!-- Inline Delete Confirmation -->
+          <transition
+            enter-active-class="transition-all duration-200 ease-out"
+            enter-class="opacity-0 transform translate-y-2"
+            enter-to-class="opacity-100 transform translate-y-0"
+            leave-active-class="transition-all duration-150 ease-in"
+            leave-class="opacity-100 transform translate-y-0"
+            leave-to-class="opacity-0 transform translate-y-2"
+          >
+            <div
+              v-if="showDeleteConfirm"
+              ref="deleteConfirmRow"
+              class="mt-3 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm flex items-center justify-between"
+            >
+              <span class="text-red-800 font-medium">Bu yorumu silmek istiyor musun?</span>
+              <div class="flex items-center gap-2">
+                <button
+                  @click="showDeleteConfirm = false"
+                  :disabled="deleting"
+                  class="px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-soft font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Vazgeç
+                </button>
+                <button
+                  @click="handleDelete"
+                  :disabled="deleting"
+                  class="px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-soft font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <svg
+                    v-if="deleting"
+                    class="animate-spin h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      class="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      stroke-width="4"
+                    />
+                    <path
+                      class="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  <span>{{ deleting ? "Siliniyor..." : "Sil" }}</span>
+                </button>
+              </div>
+            </div>
+          </transition>
         </div>
       </div>
     </div>
@@ -150,7 +204,21 @@ export default Vue.extend({
       showReportModal: false,
       reportReason: "",
       reporting: false,
+      showDeleteConfirm: false,
+      deleting: false,
     };
+  },
+  mounted() {
+    // Add click outside listener
+    if (process.client) {
+      document.addEventListener("click", this.handleClickOutside);
+    }
+  },
+  beforeDestroy() {
+    // Remove click outside listener
+    if (process.client) {
+      document.removeEventListener("click", this.handleClickOutside);
+    }
   },
   computed: {
     canEditComment(): boolean {
@@ -176,9 +244,32 @@ export default Vue.extend({
       if (diffDays < 7) return `${diffDays} gün önce`;
       return date.toLocaleDateString("tr-TR");
     },
-    handleDelete() {
-      if (confirm("Bu yorumu silmek istediğinizden emin misiniz?")) {
+    handleClickOutside(event: Event) {
+      // Close confirmation if clicking outside the comment container
+      if (this.showDeleteConfirm && this.$refs.commentContainer) {
+        const target = event.target as Node;
+        const commentContainer = this.$refs.commentContainer as HTMLElement;
+        
+        if (commentContainer && !commentContainer.contains(target)) {
+          this.showDeleteConfirm = false;
+        }
+      }
+    },
+    async handleDelete() {
+      if (this.deleting) return;
+      
+      this.deleting = true;
+      try {
         this.$emit("delete", this.comment);
+        // Close confirmation after emit (parent will handle actual deletion)
+        this.showDeleteConfirm = false;
+      } catch (error) {
+        console.error("Error deleting comment:", error);
+      } finally {
+        // Reset deleting state after a short delay to allow parent to process
+        setTimeout(() => {
+          this.deleting = false;
+        }, 500);
       }
     },
     async submitReport() {

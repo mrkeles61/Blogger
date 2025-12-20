@@ -80,8 +80,8 @@ socialRouter.post(
     const userId = req.user!.id;
     const { content, parentId } = { ...commentSchema.parse(req.body), parentId: req.body.parentId };
 
-    const comment = await addComment(userId, id, content, parentId);
-    res.status(201).json(comment);
+    const result = await addComment(userId, id, content, parentId);
+    res.status(201).json(result);
   })
 );
 
@@ -118,8 +118,8 @@ socialRouter.delete(
     const userId = req.user!.id;
     const isAdmin = req.user!.role === "Admin";
 
-    await deleteComment(id, userId, isAdmin);
-    res.status(204).send();
+    const result = await deleteComment(id, userId, isAdmin);
+    res.json(result);
   })
 );
 
@@ -206,6 +206,27 @@ socialRouter.get(
 
     const following = await isFollowing(followerId, id);
     res.json({ following });
+  })
+);
+
+// DEBUG: Get comment stats for an article (temporary endpoint for debugging)
+socialRouter.get(
+  "/articles/:id/comment-stats",
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const { id } = req.params;
+    const { prisma } = await import("../lib/prisma");
+    
+    const total = await prisma.comment.count({
+      where: { articleId: id },
+    });
+    const active = await prisma.comment.count({
+      where: { articleId: id, deletedAt: null },
+    });
+    const deleted = await prisma.comment.count({
+      where: { articleId: id, deletedAt: { not: null } },
+    });
+    
+    res.json({ total, active, deleted });
   })
 );
 

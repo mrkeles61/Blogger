@@ -96,6 +96,16 @@ export default Vue.extend({
   },
   async mounted() {
     await this.loadComments();
+    // Watch for changes in store comments
+    this.$store.watch(
+      (state) => state.social.comments[this.articleId],
+      (newComments) => {
+        if (newComments) {
+          this.comments = newComments;
+        }
+      },
+      { immediate: false }
+    );
   },
   methods: {
     async loadComments() {
@@ -115,7 +125,7 @@ export default Vue.extend({
       this.submitting = true;
       try {
         const parentId = this.replyingTo?.id || null;
-        await this.$store.dispatch("social/addComment", {
+        const result = await this.$store.dispatch("social/addComment", {
           articleId: this.articleId,
           content: this.newComment,
           parentId,
@@ -123,8 +133,13 @@ export default Vue.extend({
         this.newComment = "";
         this.replyingTo = null;
         await this.loadComments();
+        // Emit event to parent with updated comment count from backend
+        if (result && result.articleCommentCount !== undefined) {
+          this.$emit("comment-added", { commentCount: result.articleCommentCount });
+        }
       } catch (err: any) {
-        alert(`Yorum gönderilemedi: ${err.message}`);
+        console.error("Comment add error:", err);
+        alert(`Yorum gönderilemedi: ${err.message || err}`);
       } finally {
         this.submitting = false;
       }
@@ -144,16 +159,26 @@ export default Vue.extend({
       // Could add mention autocomplete here
     },
     async handleDelete(comment: Comment) {
-      if (!confirm("Are you sure you want to delete this comment?")) return;
-
       try {
-        await this.$store.dispatch("social/deleteComment", {
+        // Optimistic update: remove from local state immediately
+        this.comments = this.comments.filter((c) => c.id !== comment.id);
+        
+        const result = await this.$store.dispatch("social/deleteComment", {
           articleId: this.articleId,
           commentId: comment.id,
         });
+        
+        // Reload to ensure sync with backend
         await this.loadComments();
+        // Emit event to parent with updated comment count from backend
+        if (result && result.commentCount !== undefined) {
+          this.$emit("comment-deleted", { commentCount: result.commentCount });
+        }
       } catch (err: any) {
-        alert(`Failed to delete comment: ${err.message}`);
+        console.error("Comment delete error:", err);
+        // Revert on error
+        await this.loadComments();
+        alert(`Yorum silinemedi: ${err.message || err}`);
       }
     },
     handleEdit(comment: Comment) {

@@ -348,12 +348,12 @@ export const api = {
   },
 
   // Social - Comments
-  async addComment(articleId: string, content: string, parentId?: string | null): Promise<Comment> {
+  async addComment(articleId: string, content: string, parentId?: string | null): Promise<Comment & { articleCommentCount?: number }> {
     const response = await fetchWithAuth(`${API_BASE}/api/articles/${articleId}/comments`, {
       method: "POST",
       body: JSON.stringify({ content, parentId: parentId || undefined }),
     });
-    return handleResponse<Comment>(response);
+    return handleResponse<Comment & { articleCommentCount?: number }>(response);
   },
 
   async getArticleComments(articleId: string): Promise<Comment[]> {
@@ -369,11 +369,11 @@ export const api = {
     return handleResponse<Comment>(response);
   },
 
-  async deleteComment(commentId: string): Promise<void> {
+  async deleteComment(commentId: string): Promise<{ articleId: string; commentCount: number }> {
     const response = await fetchWithAuth(`${API_BASE}/api/comments/${commentId}`, {
       method: "DELETE",
     });
-    await handleResponse<void>(response);
+    return handleResponse<{ articleId: string; commentCount: number }>(response);
   },
 
   // Social - Bookmarks

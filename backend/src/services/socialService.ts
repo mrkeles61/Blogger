@@ -195,7 +195,18 @@ export async function addComment(
     console.error("Error handling mentions:", err);
   });
 
-  return comment;
+  // Get updated comment count for the article
+  const commentCount = await prisma.comment.count({
+    where: {
+      articleId,
+      deletedAt: null,
+    },
+  });
+
+  return {
+    ...comment,
+    articleCommentCount: commentCount,
+  };
 }
 
 export async function updateComment(
@@ -245,11 +256,30 @@ export async function deleteComment(commentId: string, userId: string, isAdmin =
     throw new Error("Not authorized to delete this comment");
   }
 
+  console.log(`[DEBUG] Deleting comment ${commentId}, current deletedAt: ${comment.deletedAt}`);
+
   // Soft delete
-  return prisma.comment.update({
+  const updated = await prisma.comment.update({
     where: { id: commentId },
     data: { deletedAt: new Date() },
   });
+
+  console.log(`[DEBUG] Comment ${commentId} soft deleted, new deletedAt: ${updated.deletedAt}`);
+
+  // Get updated comment count for the article
+  const commentCount = await prisma.comment.count({
+    where: {
+      articleId: comment.articleId,
+      deletedAt: null,
+    },
+  });
+
+  console.log(`[DEBUG] Article ${comment.articleId} comment count after delete: ${commentCount}`);
+
+  return {
+    articleId: comment.articleId,
+    commentCount,
+  };
 }
 
 export async function getArticleComments(articleId: string) {

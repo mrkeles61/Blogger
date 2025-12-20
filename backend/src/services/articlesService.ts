@@ -143,7 +143,6 @@ export async function getArticleById(
           _count: {
             select: {
               likes: true,
-              comments: true,
             },
           },
         }
@@ -173,6 +172,25 @@ export async function getArticleById(
       }
     }
   }
+
+  // Get actual comment count (excluding soft-deleted comments) - always calculate
+  const totalComments = await prisma.comment.count({
+    where: {
+      articleId: id,
+    },
+  });
+  const activeComments = await prisma.comment.count({
+    where: {
+      articleId: id,
+      deletedAt: null,
+    },
+  });
+  // Initialize _count if it doesn't exist
+  if (!article._count) {
+    article._count = { likes: (article as any)._count?.likes || 0, comments: 0 };
+  }
+  article._count.comments = activeComments;
+  console.log(`[DEBUG] Article ${id} - Total comments: ${totalComments}, Active (not deleted): ${activeComments}`);
 
   return article;
 }

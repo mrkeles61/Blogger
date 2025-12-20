@@ -30,14 +30,13 @@
               <!-- Title -->
               <div>
                 <label for="title" class="block text-sm font-semibold text-gray-700 mb-2">
-                  Başlık (8-120 karakter)
+                  Başlık (max 120 karakter)
                 </label>
                 <input
                   id="title"
                   v-model="form.title"
                   type="text"
                   required
-                  minlength="8"
                   maxlength="120"
                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-blue focus:border-transparent transition-soft text-lg font-medium"
                   placeholder="Makale başlığını girin"
@@ -48,14 +47,13 @@
               <!-- Summary -->
               <div>
                 <label for="summary" class="block text-sm font-semibold text-gray-700 mb-2">
-                  Özet (20-280 karakter)
+                  Özet (max 280 karakter)
                 </label>
                 <textarea
                   id="summary"
                   v-model="form.summary"
                   rows="3"
                   required
-                  minlength="20"
                   maxlength="280"
                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-blue focus:border-transparent transition-soft resize-none"
                   placeholder="Makale özetini girin"

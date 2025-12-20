@@ -89,7 +89,11 @@
 
           <!-- Action Buttons -->
           <div class="flex flex-wrap items-center gap-4 bg-white rounded-xl shadow-sm p-6">
-            <LikeButton :article-id="article.id" :like-count="article._count?.likes || 0" />
+            <LikeButton 
+              :article-id="article.id" 
+              :like-count="article._count?.likes || 0" 
+              @liked="handleLikeUpdate"
+            />
             <BookmarkButton :article-id="article.id" />
             <div class="flex gap-2 ml-auto">
               <button
@@ -229,7 +233,11 @@
           <!-- Comments Section -->
           <div class="bg-white rounded-xl shadow-sm p-8">
             <h2 class="text-2xl font-playfair font-bold mb-6">Yorumlar ({{ article._count?.comments || 0 }})</h2>
-            <CommentList :article-id="article.id" />
+            <CommentList 
+              :article-id="article.id" 
+              @comment-added="handleCommentAdded"
+              @comment-deleted="handleCommentDeleted"
+            />
           </div>
         </div>
 
@@ -329,6 +337,8 @@ export default class ArticleDetailPage extends Vue {
     this.error = null;
     try {
       this.article = await api.getArticle(id);
+      console.log("[DEBUG] Article loaded, comment count from backend:", this.article?._count?.comments);
+      console.log("[DEBUG] Full article _count:", this.article?._count);
       if (this.article && this.article.authorId && this.isAuthenticated) {
         await this.$store.dispatch("social/checkBookmarkStatus", id);
       }
@@ -433,6 +443,36 @@ export default class ArticleDetailPage extends Vue {
     if (!this.article || !this.isAuthenticated) return false;
     const isAdmin = this.$store.getters["auth/isAdmin"];
     return this.article.authorId === this.currentUserId || isAdmin;
+  }
+
+  handleLikeUpdate(payload: { articleId: string; likeCount: number }) {
+    // Update article like count in real-time
+    if (this.article && this.article.id === payload.articleId) {
+      if (!this.article._count) {
+        this.$set(this.article, '_count', { likes: 0, comments: 0 });
+      }
+      this.$set(this.article._count, 'likes', payload.likeCount);
+    }
+  }
+
+  handleCommentAdded(payload?: { commentCount?: number }) {
+    // Update comment count from backend response
+    if (this.article && payload?.commentCount !== undefined) {
+      if (!this.article._count) {
+        this.$set(this.article, '_count', { likes: 0, comments: 0 });
+      }
+      this.$set(this.article._count, 'comments', payload.commentCount);
+    }
+  }
+
+  handleCommentDeleted(payload?: { commentCount?: number }) {
+    // Update comment count from backend response
+    if (this.article && payload?.commentCount !== undefined) {
+      if (!this.article._count) {
+        this.$set(this.article, '_count', { likes: 0, comments: 0 });
+      }
+      this.$set(this.article._count, 'comments', payload.commentCount);
+    }
   }
 }
 </script>

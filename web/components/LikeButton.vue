@@ -24,7 +24,7 @@
         d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
       />
     </svg>
-    <span>{{ likeCount }}</span>
+    <span>{{ localLikeCount }}</span>
   </button>
 </template>
 
@@ -46,7 +46,14 @@ export default Vue.extend({
   data() {
     return {
       loading: false,
+      localLikeCount: this.likeCount, // Local state for optimistic updates
     };
+  },
+  watch: {
+    likeCount(newVal: number) {
+      // Update local count when prop changes (e.g., after page refresh)
+      this.localLikeCount = newVal;
+    },
   },
   computed: {
     isAuthenticated(): boolean {
@@ -69,11 +76,26 @@ export default Vue.extend({
       }
 
       this.loading = true;
+      const wasLiked = this.isLiked;
+      
+      // Optimistic update: immediately update the UI
+      if (wasLiked) {
+        this.localLikeCount = Math.max(0, this.localLikeCount - 1);
+      } else {
+        this.localLikeCount = this.localLikeCount + 1;
+      }
+      
       try {
         await this.$store.dispatch("social/toggleLike", this.articleId);
-        this.$emit("liked");
+        this.$emit("liked", { articleId: this.articleId, likeCount: this.localLikeCount });
       } catch (err: any) {
-        alert(`Failed to ${this.isLiked ? "unlike" : "like"}: ${err.message}`);
+        // Revert optimistic update on error
+        if (wasLiked) {
+          this.localLikeCount = this.localLikeCount + 1;
+        } else {
+          this.localLikeCount = Math.max(0, this.localLikeCount - 1);
+        }
+        alert(`Failed to ${wasLiked ? "unlike" : "like"}: ${err.message}`);
       } finally {
         this.loading = false;
       }
