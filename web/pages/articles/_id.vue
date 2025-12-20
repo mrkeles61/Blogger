@@ -161,7 +161,7 @@
           </article>
 
           <!-- Author Spotlight Card -->
-          <div v-if="article.author" class="bg-white rounded-xl shadow-sm p-8 border border-gray-100">
+          <div v-if="article && article.author" class="bg-white rounded-xl shadow-sm p-8 border border-gray-100">
             <div class="flex flex-col md:flex-row items-start gap-6">
               <div class="flex-shrink-0">
                 <img
@@ -262,7 +262,7 @@
             </div>
 
             <!-- Author Stats Card -->
-            <div v-if="article.author" class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <div v-if="article && article.author" class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
               <h3 class="text-xl font-playfair font-bold mb-4 text-gray-900">Yazar Hakkında</h3>
               <div class="space-y-4">
                 <div class="flex items-center justify-between">

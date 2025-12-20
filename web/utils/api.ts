@@ -230,8 +230,14 @@ export const api = {
   },
 
   async getCurrentUser(): Promise<AuthResponse> {
+    console.log("[AUTH DEBUG] api.getCurrentUser - making request to:", `${API_BASE}/api/auth/me`);
+    console.log("[AUTH DEBUG] Request options:", { credentials: "include" });
     const response = await fetchWithAuth(`${API_BASE}/api/auth/me`);
-    return handleResponse<AuthResponse>(response);
+    console.log("[AUTH DEBUG] Response status:", response.status);
+    console.log("[AUTH DEBUG] Response headers:", Object.fromEntries(response.headers.entries()));
+    const result = await handleResponse<AuthResponse>(response);
+    console.log("[AUTH DEBUG] Response data:", result);
+    return result;
   },
 
   // Articles

@@ -59,6 +59,7 @@ export default Vue.extend({
       loading: true,
       error: null as string | null,
       searchQuery: "",
+      isMounted: false, // Flag to prevent hydration mismatch
     };
   },
   computed: {
@@ -66,8 +67,14 @@ export default Vue.extend({
       return this.articles?.items.slice(0, 5) || [];
     },
     isAuthenticated(): boolean {
+      // During SSR and initial render, return false to match SSR output
+      if (!this.isMounted) return false;
       return this.$store.getters["auth/isAuthenticated"];
     },
+  },
+  mounted() {
+    // Set mounted flag after hydration to allow auth-dependent rendering
+    this.isMounted = true;
   },
   async fetch() {
     await Promise.all([this.loadArticles(), this.loadRecentActivities()]);

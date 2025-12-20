@@ -45,15 +45,18 @@ export const actions = {
   async fetchCurrentUser({ commit }: any) {
     commit("setLoading", true);
     try {
+      console.log("[AUTH DEBUG] fetchCurrentUser action - calling api.getCurrentUser()");
       const response = await api.getCurrentUser();
+      console.log("[AUTH DEBUG] getCurrentUser response:", response);
       commit("setUser", response.user);
+      console.log("[AUTH DEBUG] User committed to store:", response.user);
       return response.user;
     } catch (error: any) {
-      // Only clear user if backend confirms session is invalid (401)
-      // Network errors or timeouts should not clear state
-      if (error?.status === 401 || error?.message?.includes("401")) {
-        commit("setUser", null);
-      }
+      // On failure, clear user state
+      console.error("[AUTH DEBUG] fetchCurrentUser action error:", error);
+      console.error("[AUTH DEBUG] Error status:", error.status);
+      console.error("[AUTH DEBUG] Error message:", error.message);
+      // The plugin will handle the state clearing, but we throw to indicate failure
       throw error;
     } finally {
       commit("setLoading", false);

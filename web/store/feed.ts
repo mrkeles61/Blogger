@@ -54,7 +54,7 @@ export const actions = {
   async markAllAsRead({ commit, state }: any) {
     try {
       await api.markAllNotificationsAsRead();
-      state.notifications = state.notifications.map((n) => ({
+      state.notifications = state.notifications.map((n: Notification) => ({
         ...n,
         readAt: new Date().toISOString(),
       }));

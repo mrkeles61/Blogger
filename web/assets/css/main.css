@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Hide elements with v-cloak until Vue is ready */
+[v-cloak] {
+  display: none !important;
+}
+
 @layer base {
   body {
     @apply font-inter antialiased bg-gray-50;

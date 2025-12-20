@@ -35,11 +35,14 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 // Enhanced logging
+const nodeEnv = process.env.NODE_ENV || "development";
 console.log("[INFO] Starting Bilfen Blog Backend...");
-console.log(`[INFO] Environment: ${process.env.NODE_ENV || "development"}`);
+console.log(`[INFO] Environment: ${nodeEnv}`);
 console.log(`[INFO] JWT_SECRET: ${process.env.JWT_SECRET ? "[OK] Set" : "[ERROR] Missing"}`);
 console.log(`[INFO] DATABASE_URL: ${process.env.DATABASE_URL || "file:./prisma/dev.db"}`);
 console.log(`[INFO] PORT: ${PORT}`);
+console.log(`[INFO] CORS Origin: ${process.env.CORS_ORIGIN || "http://localhost:3000"}`);
+console.log(`[INFO] Cookie Secure: ${nodeEnv === "production" ? "true (HTTPS required)" : "false (HTTP allowed)"}`);
 
 // Test Prisma connection on startup
 console.log("[INFO] Connecting to database...");
@@ -56,9 +59,33 @@ prisma.$connect()
 
 // Middleware
 app.use(helmet());
+// CORS: Allow both localhost and 127.0.0.1 in development
+const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:3000";
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, Postman, etc.)
+      if (!origin) return callback(null, true);
+      
+      // In development, allow both localhost and 127.0.0.1
+      if (process.env.NODE_ENV !== "production") {
+        const allowedOrigins = [
+          "http://localhost:3000",
+          "http://127.0.0.1:3000",
+          corsOrigin,
+        ];
+        if (allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+      }
+      
+      // In production, use configured origin
+      if (origin === corsOrigin) {
+        return callback(null, true);
+      }
+      
+      callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
   })
 );

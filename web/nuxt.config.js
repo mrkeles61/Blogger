@@ -42,5 +42,11 @@ export default {
   },
 
   // Build configuration
-  build: {},
+  build: {
+    extend(config, { isDev, isClient }) {
+      if (isDev && isClient) {
+        config.devtool = "source-map";
+      }
+    },
+  },
 };

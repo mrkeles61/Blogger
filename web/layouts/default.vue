@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div v-cloak>
     <!-- Sticky Header -->
     <header
       v-if="!isLoginPage"
@@ -60,7 +60,7 @@
               </svg>
             </div>
 
-            <template v-if="isAuthenticated">
+            <template v-if="isAuthenticated && user">
               <!-- Notifications -->
               <button
                 @click="showNotifications = !showNotifications"
@@ -83,22 +83,22 @@
               </button>
 
               <!-- User Menu -->
-              <div class="relative">
+              <div v-if="user && user.id" class="relative">
                 <nuxt-link
-                  :to="`/users/${user?.id}`"
+                  :to="`/users/${user.id}`"
                   class="flex items-center gap-2 hover:opacity-80 transition-soft"
                 >
                   <img
-                    v-if="user?.avatarUrl"
+                    v-if="user.avatarUrl"
                     :src="user.avatarUrl"
-                    :alt="user?.displayName || user?.username"
+                    :alt="user.displayName || user.username || 'User'"
                     class="w-8 h-8 rounded-full object-cover ring-2 ring-gray-200"
                   />
                   <div
                     v-else
                     class="w-8 h-8 rounded-full bg-gradient-shift flex items-center justify-center text-white text-xs font-semibold ring-2 ring-gray-200"
                   >
-                    {{ (user?.displayName || user?.username || "U")[0].toUpperCase() }}
+                    {{ (user.displayName || user.username || "U")[0].toUpperCase() }}
                   </div>
                 </nuxt-link>
               </div>
@@ -192,21 +192,22 @@
         </nuxt-link>
 
         <nuxt-link
-          :to="`/users/${user?.id}`"
+          v-if="user && user.id"
+          :to="`/users/${user.id}`"
           class="flex flex-col items-center justify-center flex-1 text-gray-600 hover:text-accent-orange transition-soft"
-          :class="{ 'text-accent-orange': $route.path.startsWith('/users/') }"
+          :class="{ 'text-accent-orange': $route.path && $route.path.startsWith('/users/') }"
         >
           <img
-            v-if="user?.avatarUrl"
+            v-if="user.avatarUrl"
             :src="user.avatarUrl"
-            :alt="user?.displayName || user?.username"
+            :alt="user.displayName || user.username || 'User'"
             class="w-6 h-6 rounded-full object-cover"
           />
           <div
             v-else
             class="w-6 h-6 rounded-full bg-gradient-shift flex items-center justify-center text-white text-xs font-semibold"
           >
-            {{ (user?.displayName || user?.username || "U")[0].toUpperCase() }}
+            {{ (user.displayName || user.username || "U")[0].toUpperCase() }}
           </div>
           <span class="text-xs mt-1">Profil</span>
         </nuxt-link>
@@ -231,16 +232,23 @@ export default Vue.extend({
       searchQuery: "",
       notifications: [] as Notification[],
       notificationsLoading: false,
+      isMounted: false, // Flag to prevent hydration mismatch
     };
   },
   computed: {
     isAuthenticated(): boolean {
+      // During SSR and initial render, return false to match SSR output
+      if (!this.isMounted) return false;
       return this.$store.getters["auth/isAuthenticated"];
     },
     user() {
+      // During SSR and initial render, return null to match SSR output
+      if (!this.isMounted) return null;
       return this.$store.state.auth.user;
     },
     isLoginPage(): boolean {
+      // Guard against undefined route.path during SSR
+      if (!this.$route || !this.$route.path) return false;
       return this.$route.path === "/login";
     },
     unreadNotifications(): number {
@@ -255,6 +263,8 @@ export default Vue.extend({
     },
   },
   async mounted() {
+    // Set mounted flag after hydration to allow user-dependent rendering
+    this.isMounted = true;
     if (this.isAuthenticated) {
       await this.loadNotifications();
     }

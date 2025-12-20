@@ -5,6 +5,11 @@ const authMiddleware: Middleware = async ({ store, redirect, route }) => {
   if (route.path === "/login") {
     return;
   }
+  
+  // Guard against undefined route.path during SSR
+  if (!route.path) {
+    return;
+  }
 
   // Skip auth check during SSR - only check on client-side
   // This allows the auth plugin to restore session before middleware runs
@@ -26,12 +31,17 @@ const authMiddleware: Middleware = async ({ store, redirect, route }) => {
     // This handles cases where plugin might have failed due to network issues
     if (!store.getters["auth/isAuthenticated"]) {
       try {
+        // Increased timeout to 5 seconds for slow backends
         await Promise.race([
           store.dispatch("auth/fetchCurrentUser"),
-          new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 2000)),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 5000)),
         ]);
       } catch (error) {
         // Not authenticated or timeout - proceed to redirect
+        // Log for debugging
+        if (process.env.NODE_ENV === "development") {
+          console.log("[Auth Middleware] fetchCurrentUser failed:", error);
+        }
       }
     }
   }
@@ -40,8 +50,8 @@ const authMiddleware: Middleware = async ({ store, redirect, route }) => {
 
   if (!isAuthenticated) {
     // Only redirect if not already going to login
-    if (route.path !== "/login") {
-      return redirect(`/login?redirect=${encodeURIComponent(route.fullPath)}`);
+    if (route.path && route.path !== "/login") {
+      return redirect(`/login?redirect=${encodeURIComponent(route.fullPath || route.path)}`);
     }
   }
 };
