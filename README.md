@@ -193,20 +193,34 @@ npm run dev
 The web app will start on `http://localhost:3000` (default Nuxt port).
 
 **Available pages:**
-- `/` - Home page with article list, search functionality, and "New Article" button
-- `/search` - Advanced search page with filters (author, date range, sort) and autocomplete suggestions
-- `/articles/:id` - Article detail page with author card, likes, comments (with nested replies), bookmarks, report button, and edit/delete actions
-- `/articles/:id/edit` - Edit article form with status (Draft/Published/Scheduled) and scheduled date picker (owner, Admin, or Editor only)
-- `/articles/new` - Create new article form with status dropdown and scheduled date picker (authenticated users)
+- `/` - Home page with dark theme, hero section, featured articles, latest articles, and "New Article" button
+- `/search` - Advanced search page with FTS5 search, filters (author, date range, sort), date range picker, live suggestions, and active filter summary
+- `/articles/:id` - Article detail page with dark theme, author spotlight card, likes, comments (with single-level replies), bookmarks, report button, and edit/delete actions
+- `/articles/:id/edit` - Edit article form with dark theme, status (Draft/Published/Scheduled) and scheduled date picker (owner, Admin, or Editor only)
+- `/articles/new` - Create new article form with dark theme, status dropdown and scheduled date picker (authenticated users)
 - `/dashboard` - Author dashboard with analytics (total articles, views, likes, followers, activity charts)
 - `/dashboard/articles` - Article management page with tabs for Drafts, Scheduled, and Published articles
 - `/dashboard/moderation` - Admin moderation panel for managing reports (auth + admin middleware required)
-- `/users/:id` - User profile page with articles, stats, follow button
+- `/users/:id` - User profile page with dark theme, articles, stats, follow button (hidden on own profile), activity tab
 - `/users/:id/edit` - Edit profile form (self or Admin only)
 - `/feed` - Activity feed showing actions from followed users
-- `/bookmarks` - User's saved articles
+- `/bookmarks` - User's saved articles with dark theme and state persistence
 - `/notifications` - User notifications (includes collaborator invites, mentions, comment replies)
 - `/login` - Login page
+
+**Key Components:**
+- `ArticleCard` - Reusable article card with dark theme, hover effects, bookmark button
+- `LatestArticleCard` - Detailed article card for homepage latest section
+- `CommentList` - Comment system with single-level indentation, reply functionality
+- `CommentItem` - Individual comment with edit/delete/report actions
+- `FollowButton` - Follow/unfollow button with dark theme (hidden on own profile)
+- `LikeButton` - Like/unlike button with optimistic updates
+- `BookmarkButton` - Bookmark/unbookmark button with state persistence
+- `DateRangePicker` - Custom calendar component for date range selection
+- `ShimmerPlaceholder` - Loading state placeholder
+- `FloatingToolbar` - Rich text editor toolbar
+- `ActivityItem` - Activity feed item component
+- `NotificationPanel` - Notification display component
 
 **Environment Variables:**
 - `NUXT_PUBLIC_API_BASE` - Backend API base URL (default: `http://localhost:4000`)
@@ -260,6 +274,7 @@ Each workspace has its own scripts (see respective `package.json` files).
 - ✅ Full CRUD operations for articles
 - ✅ Article status workflow (Draft, Published, Scheduled)
 - ✅ Scheduled publishing with background job
+- ✅ SQLite FTS5 full-text search for articles (title and summary)
 - ✅ Advanced search with filtering (query, author, status, tags, date range, sort)
 - ✅ Search suggestions endpoint
 - ✅ Article views tracking
@@ -267,6 +282,7 @@ Each workspace has its own scripts (see respective `package.json` files).
 - ✅ Collaboration features (co-authors, reviewers)
 - ✅ Nested/threaded comments with @mentions
 - ✅ Reporting and moderation system
+- ✅ Social features (likes, bookmarks, follows)
 - ✅ Input validation with Zod
 - ✅ Error handling middleware
 - ✅ Production-ready middleware (Helmet, CORS, rate limiting)
@@ -274,17 +290,21 @@ Each workspace has its own scripts (see respective `package.json` files).
 
 **Frontend:**
 - ✅ Nuxt 2 with TypeScript
-- ✅ TailwindCSS styling
+- ✅ TailwindCSS styling with consistent dark theme across all pages
 - ✅ Full CRUD interface
 - ✅ Article status badges (Draft, Scheduled, Featured)
 - ✅ Article creation/editing with status dropdown and scheduled date picker
 - ✅ Dashboard pages (analytics, article management, moderation)
-- ✅ Advanced search page with filters and autocomplete
-- ✅ Nested comment threads with reply functionality
+- ✅ Advanced search page with FTS5 search, filters, date range picker, and autocomplete
+- ✅ Nested comment threads with single-level indentation and reply functionality
 - ✅ Report buttons for articles and comments
 - ✅ Route guards (auth, admin middleware)
 - ✅ Error handling and validation display
 - ✅ Loading and error states
+- ✅ User profiles with follow functionality
+- ✅ Bookmarks page with state persistence
+- ✅ Social features (likes, bookmarks, follows) with optimistic updates
+- ✅ Reusable component library (ArticleCard, CommentList, FollowButton, DateRangePicker, etc.)
 
 ### Code Formatting
 
@@ -404,10 +424,12 @@ The project uses a clean separation of concerns:
 
 ### Advanced Search & Filters
 
-- **Full-text Search**: Search across article titles, summaries, and content
+- **Full-text Search**: SQLite FTS5 implementation for searching article titles and summaries with BM25 ranking
+- **Title Priority**: Search results prioritize title matches over summary matches
 - **Advanced Filters**: Filter by author, status, tags, date range, and sort by recent/popular
-- **Search Suggestions**: `/api/search/suggestions` endpoint provides autocomplete suggestions for articles and authors
-- **Search Page**: Dedicated `/search` page with filter UI and active filter summary
+- **Date Range Picker**: Custom calendar component for selecting date ranges
+- **Search Suggestions**: Live dropdown suggestions after 3+ characters, `/api/search/suggestions` endpoint provides autocomplete
+- **Search Page**: Dedicated `/search` page with filter UI, active filter summary, and Enter key navigation
 
 ### Analytics & Dashboards
 
@@ -451,6 +473,23 @@ The backend includes a scheduled publishing service that runs automatically when
 
 **Manual Publishing:**
 You can also manually trigger scheduled publishing by calling the `publishDueArticles()` function from `src/services/publishScheduler.ts`.
+
+## Recent Improvements
+
+### UI/UX Enhancements (Latest)
+- ✅ **Dark Theme**: Consistent dark theme applied across all pages (homepage, articles, profiles, search, bookmarks)
+- ✅ **Button Consistency**: Unified button styling with accent-purple theme, removed colorful gradients
+- ✅ **Component Library**: Reusable components including ArticleCard, LatestArticleCard, CommentList, CommentItem, FollowButton, LikeButton, BookmarkButton, DateRangePicker, and more
+- ✅ **Date Range Picker**: Custom calendar component with validation (prevents future dates, ensures logical date ranges)
+- ✅ **Search Experience**: Live dropdown suggestions, Enter key navigation, automatic filter application
+
+### Feature Improvements (Latest)
+- ✅ **Follow Button**: Added to user profiles (automatically hidden on own profile)
+- ✅ **Comment System**: Single-level indentation for replies, proper parent-child relationships, no lost replies
+- ✅ **Bookmark State**: Optimistic updates, state persistence across page refreshes via Vuex store
+- ✅ **Comment Counts**: Always fetched from database, accurate counts displayed on all article cards
+- ✅ **FTS5 Search**: Full-text search implementation with title priority and BM25 ranking
+- ✅ **Profile Page**: Fixed refresh issues, proper auth state handling, client-side data loading
 
 ## Next Steps
 
