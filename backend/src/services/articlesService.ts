@@ -16,7 +16,15 @@ export interface ListArticlesFilters {
   limit?: number;
 }
 
-export async function listArticles(filters: ListArticlesFilters = {}) {
+export interface ArticlesListResponse {
+  items: any[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export async function listArticles(filters: ListArticlesFilters = {}): Promise<ArticlesListResponse> {
   const {
     search,
     authorId,
@@ -30,10 +38,16 @@ export async function listArticles(filters: ListArticlesFilters = {}) {
     limit = 20,
   } = filters;
 
+  // Use FTS5 search if query length >= 2
+  if (search && search.length >= 2) {
+    const offset = (page - 1) * limit;
+    return searchArticlesFTS(search, limit, offset, onlyPublished);
+  }
+
   const where: Prisma.ArticleWhereInput = {};
 
-  // Search query (title, summary, content)
-  if (search) {
+  // Fallback search query for short queries (< 2 chars) or non-FTS
+  if (search && search.length < 2) {
     where.OR = [
       { title: { contains: search } },
       { summary: { contains: search } },
@@ -85,7 +99,7 @@ export async function listArticles(filters: ListArticlesFilters = {}) {
 
   const skip = (page - 1) * limit;
 
-  const [items, total] = await Promise.all([
+  const [articles, total] = await Promise.all([
     prisma.article.findMany({
       where,
       orderBy,
@@ -103,13 +117,32 @@ export async function listArticles(filters: ListArticlesFilters = {}) {
         _count: {
           select: {
             likes: true,
-            comments: true,
           },
         },
       },
     }),
     prisma.article.count({ where }),
   ]);
+
+  // Get comment counts from database (excluding soft-deleted comments)
+  const items = await Promise.all(
+    articles.map(async (article) => {
+      const activeComments = await prisma.comment.count({
+        where: {
+          articleId: article.id,
+          deletedAt: null,
+        },
+      });
+
+      return {
+        ...article,
+        _count: {
+          ...article._count,
+          comments: activeComments,
+        },
+      };
+    })
+  );
 
   return {
     items,
@@ -128,9 +161,9 @@ export async function getArticleById(
 ) {
   const article = await prisma.article.findUnique({
     where: { id },
-    include: includeAuthor
-      ? {
-          author: {
+    include: {
+      author: includeAuthor
+        ? {
             select: {
               id: true,
               username: true,
@@ -139,14 +172,14 @@ export async function getArticleById(
               headline: true,
               isVerified: true,
             },
-          },
-          _count: {
-            select: {
-              likes: true,
-            },
-          },
-        }
-      : undefined,
+          }
+        : false,
+      _count: {
+        select: {
+          likes: true,
+        },
+      },
+    },
   });
 
   if (!article) {
@@ -173,26 +206,24 @@ export async function getArticleById(
     }
   }
 
-  // Get actual comment count (excluding soft-deleted comments) - always calculate
-  const totalComments = await prisma.comment.count({
-    where: {
-      articleId: id,
-    },
-  });
+  // Get actual comment count (excluding soft-deleted comments) - always calculate from database
   const activeComments = await prisma.comment.count({
     where: {
       articleId: id,
       deletedAt: null,
     },
   });
-  // Initialize _count if it doesn't exist
-  if (!article._count) {
-    article._count = { likes: (article as any)._count?.likes || 0, comments: 0 };
-  }
-  article._count.comments = activeComments;
-  console.log(`[DEBUG] Article ${id} - Total comments: ${totalComments}, Active (not deleted): ${activeComments}`);
+  // Always set comment count from database (excluding soft-deleted comments)
+  // Type assertion needed because Prisma's _count type doesn't include comments in select
+  const articleWithCount = article as typeof article & {
+    _count: { likes: number; comments: number };
+  };
+  articleWithCount._count = {
+    likes: article._count?.likes || 0,
+    comments: activeComments,
+  };
 
-  return article;
+  return articleWithCount;
 }
 
 export async function incrementArticleView(
@@ -405,5 +436,156 @@ export async function deleteArticle(id: string, userId: string, isAdmin = false)
   return prisma.article.delete({
     where: { id },
   });
+}
+
+/**
+ * Search articles using SQLite FTS5
+ * Only searches when query length >= 2
+ */
+export async function searchArticlesFTS(
+  query: string,
+  limit = 20,
+  offset = 0,
+  onlyPublished = true
+): Promise<ArticlesListResponse> {
+  // Guard: only search if query length >= 2
+  if (!query || query.length < 2) {
+    return {
+      items: [],
+      total: 0,
+      page: 1,
+      limit,
+      totalPages: 0,
+    };
+  }
+
+  // Escape special FTS5 characters and prepare search query
+  // FTS5 uses double quotes for phrases, * for prefix matching
+  const escapedQuery = query
+    .replace(/"/g, '""') // Escape double quotes
+    .replace(/'/g, "''") // Escape single quotes for SQL
+    .trim();
+
+  // Build WHERE clause for published articles
+  const publishedWhere = onlyPublished
+    ? "AND a.status = 'Published' AND a.publishedAt IS NOT NULL"
+    : "";
+
+  // FTS5 search query with title priority
+  // Strategy: Search both title and summary using FTS, but prioritize title matches
+  // We check if title contains the query and boost those results
+  const ftsQuery = `
+    SELECT 
+      a.id,
+      CASE 
+        WHEN LOWER(a.title) LIKE LOWER('%${escapedQuery.replace(/'/g, "''")}%') THEN 
+          bm25(articles_fts) - 1000.0  -- Heavily boost title matches (lower bm25 = better rank)
+        ELSE 
+          bm25(articles_fts)            -- Regular summary matches
+      END AS rank,
+      CASE 
+        WHEN LOWER(a.title) LIKE LOWER('%${escapedQuery.replace(/'/g, "''")}%') THEN 1
+        ELSE 0
+      END AS titleMatch
+    FROM articles_fts
+    JOIN "Article" a ON a.id = articles_fts.articleId
+    WHERE articles_fts MATCH '${escapedQuery}' ${publishedWhere}
+    ORDER BY titleMatch DESC, rank ASC
+    LIMIT ${limit} OFFSET ${offset}
+  `;
+
+  // Count query for total results
+  const countQuery = `
+    SELECT COUNT(*) as total
+    FROM articles_fts
+    JOIN "Article" a ON a.id = articles_fts.articleId
+    WHERE articles_fts MATCH '${escapedQuery}' ${publishedWhere}
+  `;
+
+  try {
+    // Execute search query
+    const results = await prisma.$queryRawUnsafe<Array<{ id: string; rank: number }>>(ftsQuery);
+
+    // Execute count query
+    const countResult = await prisma.$queryRawUnsafe<Array<{ total: number }>>(countQuery);
+    const total = Number(countResult[0]?.total || 0);
+
+    // Get full article data with relations
+    const articleIds = results.map((r) => r.id);
+    if (articleIds.length === 0) {
+      return {
+        items: [],
+        total: 0,
+        page: Math.floor(offset / limit) + 1,
+        limit,
+        totalPages: 0,
+      };
+    }
+
+    const articles = await prisma.article.findMany({
+      where: {
+        id: { in: articleIds },
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+          },
+        },
+        _count: {
+          select: {
+            likes: true,
+          },
+        },
+      },
+    });
+
+    // Get comment counts for each article
+    const articlesWithCommentCounts = await Promise.all(
+      articles.map(async (article) => {
+        const activeComments = await prisma.comment.count({
+          where: {
+            articleId: article.id,
+            deletedAt: null,
+          },
+        });
+
+        return {
+          ...article,
+          _count: {
+            ...article._count,
+            comments: activeComments,
+          },
+        };
+      })
+    );
+
+    // Maintain FTS ranking order
+    const rankedArticles = articleIds
+      .map((id: string) => articlesWithCommentCounts.find((a) => a.id === id))
+      .filter((a) => a !== undefined) as typeof articlesWithCommentCounts;
+
+    const page = Math.floor(offset / limit) + 1;
+
+    return {
+      items: rankedArticles,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  } catch (error: any) {
+    console.error("FTS search error:", error);
+    // Fallback to regular search if FTS fails
+    return listArticles({
+      search: query,
+      onlyPublished,
+      limit,
+      page: Math.floor(offset / limit) + 1,
+    });
+  }
 }
 

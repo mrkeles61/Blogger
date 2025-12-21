@@ -186,7 +186,7 @@
                 <button
                   @click="handleSubmit"
                   :disabled="submitting"
-                  class="w-full px-6 py-3 bg-gradient-to-r from-accent-orange to-accent-blue text-white rounded-lg hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  class="w-full px-6 py-3 bg-accent-purple text-white rounded-lg hover:bg-purple-700 hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
                   {{ submitting ? "Kaydediliyor..." : "Değişiklikleri Kaydet" }}
                 </button>

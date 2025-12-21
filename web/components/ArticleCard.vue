@@ -1,6 +1,6 @@
 <template>
   <article
-    class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden cursor-pointer group"
+    class="bg-slate-900/60 border border-white/10 rounded-xl shadow-lg transition-transform duration-300 hover:scale-[1.02] hover:shadow-xl overflow-hidden cursor-pointer"
     @click="$emit('click')"
   >
     <div class="p-6">
@@ -20,25 +20,25 @@
             {{ (article.author?.displayName || article.author?.username || "A")[0].toUpperCase() }}
           </div>
           <div>
-            <p class="font-semibold text-gray-900 text-sm">
+            <p class="font-semibold text-white text-sm">
               {{ article.author?.displayName || article.author?.username || "Author" }}
             </p>
             <div class="flex items-center gap-2 mt-1">
               <span
                 v-if="showStatusBadges && article.status === 'Draft'"
-                class="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full"
+                class="text-xs px-2 py-0.5 bg-gray-700 text-gray-300 rounded-full"
               >
                 Taslak
               </span>
               <span
                 v-if="showStatusBadges && article.status === 'Scheduled'"
-                class="text-xs px-2 py-0.5 bg-blue-200 text-blue-700 rounded-full"
+                class="text-xs px-2 py-0.5 bg-blue-700 text-blue-300 rounded-full"
               >
                 Zamanlanmış
               </span>
               <span
                 v-if="showStatusBadges && article.isFeatured"
-                class="text-xs px-2 py-0.5 bg-yellow-200 text-yellow-700 rounded-full"
+                class="text-xs px-2 py-0.5 bg-yellow-700 text-yellow-300 rounded-full"
               >
                 Öne Çıkan
               </span>
@@ -48,18 +48,18 @@
       </div>
 
       <!-- Title -->
-      <h3 class="text-xl font-playfair font-bold text-gray-900 mb-2 group-hover:text-accent-orange transition-soft">
+      <h3 class="text-xl font-playfair font-bold text-white mb-2 line-clamp-2 leading-snug">
         {{ article.title }}
       </h3>
 
       <!-- Summary -->
-      <p class="text-gray-600 text-sm line-clamp-2 mb-4">
+      <p class="text-white/70 text-sm line-clamp-3 mb-4 leading-snug">
         {{ article.summary }}
       </p>
 
       <!-- Stats Row -->
-      <div class="flex items-center justify-between pt-4 border-t border-gray-100">
-        <div class="flex items-center gap-4 text-sm text-gray-500">
+      <div class="flex items-center justify-between mt-4 pt-4 border-t border-white/10">
+        <div class="flex items-center gap-4 text-sm text-gray-400">
           <span class="flex items-center gap-1">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -79,8 +79,8 @@
         <button
           v-if="showBookmark && $store.getters['auth/isAuthenticated']"
           @click.stop="handleBookmark"
-          class="text-gray-400 hover:text-accent-orange transition-soft"
-          :class="{ 'text-accent-orange': bookmarkStatus }"
+          class="text-gray-400 transition-soft"
+          :class="{ 'text-purple-400': bookmarkStatus }"
         >
           <svg class="w-5 h-5" :fill="bookmarkStatus ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
@@ -117,11 +117,12 @@ export default Vue.extend({
   },
   computed: {
     bookmarkStatus(): boolean {
-      // If isBookmarked prop is explicitly provided, use it
-      // Otherwise, check from store if authenticated
-      if (this.isBookmarked !== false || !this.$store.getters["auth/isAuthenticated"]) {
+      // If isBookmarked prop is explicitly provided (not undefined), use it
+      // Otherwise, check from store (populated on auth restore)
+      if (this.isBookmarked !== undefined) {
         return this.isBookmarked;
       }
+      // Use store state (loaded on auth restore)
       return this.$store.getters["social/isBookmarked"](this.article.id);
     },
   },
@@ -136,13 +137,10 @@ export default Vue.extend({
     },
     formatDate(dateString: string): string {
       const date = new Date(dateString);
-      const now = new Date();
-      const diffMs = now.getTime() - date.getTime();
-      const diffDays = Math.floor(diffMs / 86400000);
-
-      if (diffDays < 1) return "Today";
-      if (diffDays < 7) return `${diffDays}d ago`;
-      return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      return date.toLocaleDateString("tr-TR", {
+        day: "numeric",
+        month: "short",
+      });
     },
   },
 });

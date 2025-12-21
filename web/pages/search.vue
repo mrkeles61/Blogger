@@ -1,21 +1,23 @@
 <template>
-  <div class="min-h-screen bg-gray-50 font-inter">
+  <div class="min-h-screen bg-gray-900 font-inter">
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Search Header -->
       <div class="mb-8">
-        <h1 class="text-3xl font-playfair font-bold text-gray-900 mb-4">Makale Ara</h1>
+        <h1 class="text-3xl font-playfair font-bold text-white mb-4">Makale Ara</h1>
         
         <!-- Main Search Input -->
-        <div class="relative mb-4">
+        <div class="relative mb-4" v-click-outside="closeSuggestions">
           <input
             v-model="searchQuery"
             type="text"
             placeholder="Makale başlığı, özet veya içerikte ara..."
-            class="w-full px-6 py-4 pl-12 rounded-full border-2 border-gray-200 focus:border-accent-orange focus:ring-4 focus:ring-accent-orange focus:ring-opacity-20 transition-all duration-300 text-lg"
+            class="w-full px-6 py-4 pl-12 rounded-full bg-gray-800 border-2 border-gray-700 focus:border-accent-purple focus:ring-4 focus:ring-accent-purple focus:ring-opacity-20 transition-all duration-300 text-lg text-white placeholder-gray-400"
             @input="handleSearchInput"
-            @focus="showSuggestions = true"
+            @keyup.enter="handleEnterKey"
+            @focus="showSuggestions = searchQuery.length >= 2 && searchSuggestions.length > 0"
           />
           <svg
+            v-if="!searchSuggestionsLoading"
             class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
             fill="none"
             stroke="currentColor"
@@ -23,41 +25,31 @@
           >
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          
-          <!-- Suggestions Dropdown -->
-          <div
-            v-if="showSuggestions && suggestions.length > 0"
-            class="absolute z-50 w-full mt-2 bg-white rounded-lg shadow-xl border border-gray-200 max-h-96 overflow-y-auto"
+          <svg
+            v-else
+            class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 animate-spin"
+            fill="none"
+            viewBox="0 0 24 24"
           >
-            <div v-if="suggestions.articles.length > 0" class="p-2">
-              <p class="text-xs font-semibold text-gray-500 uppercase px-3 py-2">Makaleler</p>
-              <button
-                v-for="article in suggestions.articles"
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          
+          <!-- Search Suggestions Dropdown -->
+          <div
+            v-if="showSuggestions && searchSuggestions.length > 0"
+            class="absolute z-50 w-full mt-2 bg-gray-800 rounded-lg shadow-xl border border-gray-700 max-h-96 overflow-y-auto"
+          >
+            <div class="p-2">
+              <div
+                v-for="article in searchSuggestions"
                 :key="article.id"
-                @click="selectSuggestion(article.title)"
-                class="w-full text-left px-3 py-2 hover:bg-gray-50 rounded transition-soft"
+                @click="selectSuggestion(article)"
+                class="w-full text-left px-3 py-3 hover:bg-gray-700 rounded transition-soft cursor-pointer border-b border-gray-700 last:border-b-0"
               >
-                <p class="font-medium text-gray-900">{{ article.title }}</p>
-              </button>
-            </div>
-            <div v-if="suggestions.authors.length > 0" class="p-2 border-t border-gray-100">
-              <p class="text-xs font-semibold text-gray-500 uppercase px-3 py-2">Yazarlar</p>
-              <button
-                v-for="author in suggestions.authors"
-                :key="author.id"
-                @click="selectAuthorSuggestion(author)"
-                class="w-full text-left px-3 py-2 hover:bg-gray-50 rounded transition-soft flex items-center gap-3"
-              >
-                <img
-                  v-if="author.avatarUrl"
-                  :src="author.avatarUrl"
-                  :alt="author.displayName || author.username"
-                  class="w-8 h-8 rounded-full"
-                />
-                <div>
-                  <p class="font-medium text-gray-900">{{ author.displayName || author.username }}</p>
-                </div>
-              </button>
+                <p class="font-medium text-white mb-1">{{ article.title }}</p>
+                <p class="text-sm text-gray-400 line-clamp-2">{{ article.summary }}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -65,7 +57,7 @@
         <!-- Advanced Filters Toggle -->
         <button
           @click="showFilters = !showFilters"
-          class="text-sm text-accent-blue hover:text-accent-orange transition-soft flex items-center gap-2"
+          class="px-4 py-2 bg-accent-purple text-white rounded-full text-sm font-semibold flex items-center gap-2 hover:bg-purple-700 hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
@@ -75,44 +67,38 @@
       </div>
 
       <!-- Advanced Filters Panel -->
-      <div v-if="showFilters" class="bg-white rounded-xl shadow-md p-6 mb-8">
+      <div v-if="showFilters" class="bg-gray-800 rounded-xl shadow-md p-6 mb-8 border border-gray-700">
         <div class="grid gap-6 md:grid-cols-3">
           <!-- Author Filter -->
           <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">Yazar</label>
+            <label class="block text-sm font-semibold text-gray-300 mb-2">Yazar</label>
             <input
               v-model="filters.authorId"
               type="text"
               placeholder="Yazar ID"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-blue focus:border-transparent"
+              class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-purple focus:border-transparent text-white placeholder-gray-400"
+              @keyup.enter="handleEnterKey"
             />
           </div>
 
-          <!-- Date Range -->
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">Başlangıç Tarihi</label>
-            <input
-              v-model="filters.dateFrom"
-              type="date"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-blue focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">Bitiş Tarihi</label>
-            <input
-              v-model="filters.dateTo"
-              type="date"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-blue focus:border-transparent"
+          <!-- Date Range Picker -->
+          <div class="md:col-span-2">
+            <DateRangePicker
+              label="Tarih Aralığı"
+              :start-date="filters.dateFrom"
+              :end-date="filters.dateTo"
+              @update:startDate="updateStartDate"
+              @update:endDate="updateEndDate"
             />
           </div>
 
           <!-- Sort -->
           <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">Sıralama</label>
+            <label class="block text-sm font-semibold text-gray-300 mb-2">Sıralama</label>
             <select
               v-model="filters.sort"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-blue focus:border-transparent"
+              class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-purple focus:border-transparent text-white"
+              @change="handleFilterChange"
             >
               <option value="recent">En Yeni</option>
               <option value="popular">En Popüler</option>
@@ -121,10 +107,15 @@
         </div>
 
         <div class="mt-4 flex gap-3">
-          <PillButton @click="applyFilters">Filtreleri Uygula</PillButton>
+          <button
+            @click="applyFilters"
+            class="px-6 py-3 bg-accent-purple text-white rounded-full font-semibold hover:bg-purple-700 hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300"
+          >
+            Filtreleri Uygula
+          </button>
           <button
             @click="clearFilters"
-            class="px-4 py-2 text-gray-600 hover:text-gray-900 transition-soft"
+            class="px-4 py-2 text-gray-400 hover:text-white transition-soft"
           >
             Temizle
           </button>
@@ -135,20 +126,47 @@
       <div v-if="hasActiveFilters" class="mb-6 flex flex-wrap gap-2">
         <span
           v-if="searchQuery"
-          class="px-3 py-1 bg-accent-orange bg-opacity-10 text-accent-orange rounded-full text-sm flex items-center gap-2"
+          class="px-4 py-2 bg-accent-purple text-white rounded-full text-sm font-semibold flex items-center gap-2 shadow-md hover:bg-purple-700 transition-soft"
         >
           "{{ searchQuery }}"
-          <button @click="searchQuery = ''" class="hover:bg-accent-orange hover:bg-opacity-20 rounded-full p-0.5">
-            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button @click="searchQuery = ''; applyFilters()" class="hover:bg-white hover:bg-opacity-20 rounded-full p-0.5 transition-soft">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </span>
         <span
           v-if="filters.authorId"
-          class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+          class="px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-semibold flex items-center gap-2 shadow-md border border-blue-400 border-opacity-30"
         >
           Yazar: {{ filters.authorId }}
+          <button @click="filters.authorId = ''; applyFilters()" class="hover:bg-white hover:bg-opacity-20 rounded-full p-0.5 transition-soft">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </span>
+        <span
+          v-if="filters.dateFrom"
+          class="px-4 py-2 bg-green-600 text-white rounded-full text-sm font-semibold flex items-center gap-2 shadow-md border border-green-400 border-opacity-30"
+        >
+          Başlangıç: {{ filters.dateFrom }}
+          <button @click="filters.dateFrom = ''; applyFilters()" class="hover:bg-white hover:bg-opacity-20 rounded-full p-0.5 transition-soft">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </span>
+        <span
+          v-if="filters.dateTo"
+          class="px-4 py-2 bg-green-600 text-white rounded-full text-sm font-semibold flex items-center gap-2 shadow-md border border-green-400 border-opacity-30"
+        >
+          Bitiş: {{ filters.dateTo }}
+          <button @click="filters.dateTo = ''; applyFilters()" class="hover:bg-white hover:bg-opacity-20 rounded-full p-0.5 transition-soft">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </span>
       </div>
 
@@ -160,10 +178,10 @@
       </div>
 
       <div v-else-if="results && results.items.length > 0">
-        <div class="mb-4 text-sm text-gray-600">
+        <div class="mb-4 text-sm text-gray-400">
           {{ results.total }} sonuç bulundu
         </div>
-        <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           <ArticleCard
             v-for="article in results.items"
             :key="article.id"
@@ -184,8 +202,8 @@
             :class="[
               'px-4 py-2 rounded-lg transition-soft',
               filters.page === page
-                ? 'bg-accent-orange text-white'
-                : 'bg-white text-gray-700 hover:bg-gray-100'
+                ? 'bg-accent-purple text-white'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             ]"
           >
             {{ page }}
@@ -193,8 +211,8 @@
         </div>
       </div>
 
-      <div v-else-if="searched" class="bg-white rounded-xl shadow-md p-12 text-center">
-        <p class="text-gray-500 text-lg">Sonuç bulunamadı</p>
+      <div v-else-if="searched" class="bg-gray-800 rounded-xl shadow-md p-12 text-center border border-gray-700">
+        <p class="text-gray-400 text-lg">Sonuç bulunamadı</p>
       </div>
     </main>
   </div>
@@ -206,19 +224,37 @@ import { api, ArticlesResponse } from "~/utils/api";
 import ArticleCard from "~/components/ArticleCard.vue";
 import ShimmerPlaceholder from "~/components/ShimmerPlaceholder.vue";
 import PillButton from "~/components/PillButton.vue";
+import DateRangePicker from "~/components/DateRangePicker.vue";
 
 @Component({
   components: {
     ArticleCard,
     ShimmerPlaceholder,
     PillButton,
+    DateRangePicker,
+  },
+  directives: {
+    "click-outside": {
+      bind(el: any, binding: any, vnode: any) {
+        el.clickOutsideEvent = (event: Event) => {
+          if (!(el === event.target || el.contains(event.target))) {
+            vnode.context[binding.expression](event);
+          }
+        };
+        document.addEventListener("click", el.clickOutsideEvent);
+      },
+      unbind(el: any) {
+        document.removeEventListener("click", el.clickOutsideEvent);
+      },
+    },
   },
 })
 export default class SearchPage extends Vue {
   searchQuery = "";
   showSuggestions = false;
   showFilters = false;
-  suggestions = { articles: [], authors: [] };
+  searchSuggestions: any[] = [];
+  searchSuggestionsLoading = false;
   results: ArticlesResponse | null = null;
   loading = false;
   searched = false;
@@ -241,8 +277,17 @@ export default class SearchPage extends Vue {
     if (query.authorId) {
       this.filters.authorId = query.authorId as string;
     }
+    if (query.dateFrom) {
+      this.filters.dateFrom = query.dateFrom as string;
+    }
+    if (query.dateTo) {
+      this.filters.dateTo = query.dateTo as string;
+    }
     if (query.sort) {
       this.filters.sort = query.sort as "recent" | "popular";
+    }
+    if (query.page) {
+      this.filters.page = parseInt(query.page as string);
     }
     
     if (this.searchQuery || this.hasActiveFilters) {
@@ -251,41 +296,82 @@ export default class SearchPage extends Vue {
   }
 
   handleSearchInput() {
+    // Clear dropdown if query is too short
+    if (this.searchQuery.length < 2) {
+      this.showSuggestions = false;
+      this.searchSuggestions = [];
+      if (this.suggestionTimeout) {
+        clearTimeout(this.suggestionTimeout);
+        this.suggestionTimeout = null;
+      }
+      return;
+    }
+
+    // Debounce search requests (300ms)
     if (this.suggestionTimeout) {
       clearTimeout(this.suggestionTimeout);
     }
-    
-    if (this.searchQuery.length >= 2) {
-      this.suggestionTimeout = setTimeout(() => {
-        this.loadSuggestions();
-      }, 300);
-    } else {
-      this.suggestions = { articles: [], authors: [] };
-    }
+
+    this.suggestionTimeout = setTimeout(async () => {
+      await this.loadSearchSuggestions();
+    }, 300);
   }
 
-  async loadSuggestions() {
+  async loadSearchSuggestions() {
+    if (this.searchQuery.length < 2) {
+      this.searchSuggestions = [];
+      this.showSuggestions = false;
+      return;
+    }
+
+    this.searchSuggestionsLoading = true;
     try {
-      const response = await fetch(
-        `${process.env.NUXT_PUBLIC_API_BASE || "http://localhost:4000"}/api/search/suggestions?q=${encodeURIComponent(this.searchQuery)}`,
-        { credentials: "include" }
-      );
-      this.suggestions = await response.json();
-    } catch (err) {
-      console.error("Error loading suggestions:", err);
+      const response = await api.getArticles(this.searchQuery, 1, 5);
+      this.searchSuggestions = response.items || [];
+      this.showSuggestions = this.searchSuggestions.length > 0;
+    } catch (err: any) {
+      console.error("Error loading search suggestions:", err);
+      this.searchSuggestions = [];
+      this.showSuggestions = false;
+    } finally {
+      this.searchSuggestionsLoading = false;
     }
   }
 
-  selectSuggestion(title: string) {
-    this.searchQuery = title;
+  selectSuggestion(article: any) {
+    this.$router.push(`/articles/${article.id}`);
+    this.closeSuggestions();
+    this.searchQuery = "";
+  }
+
+  closeSuggestions() {
     this.showSuggestions = false;
+  }
+
+  handleEnterKey() {
+    // Close suggestions dropdown
+    this.closeSuggestions();
+    // Automatically apply filters and search
     this.search();
   }
 
-  selectAuthorSuggestion(author: any) {
-    this.filters.authorId = author.id;
-    this.showSuggestions = false;
-    this.search();
+  handleFilterChange() {
+    // Auto-apply filters when date or sort changes
+    // Only search if we have a query or other active filters
+    if (this.searchQuery || this.hasActiveFilters) {
+      this.filters.page = 1; // Reset to first page when filters change
+      this.search();
+    }
+  }
+
+  updateStartDate(dateStr: string) {
+    this.filters.dateFrom = dateStr;
+    this.handleFilterChange();
+  }
+
+  updateEndDate(dateStr: string) {
+    this.filters.dateTo = dateStr;
+    this.handleFilterChange();
   }
 
   get hasActiveFilters(): boolean {
@@ -325,9 +411,13 @@ export default class SearchPage extends Vue {
       if (this.filters.sort) params.append("sort", this.filters.sort);
       if (this.filters.page) params.append("page", this.filters.page.toString());
 
-      const url = `${process.env.NUXT_PUBLIC_API_BASE || "http://localhost:4000"}/api/articles?${params.toString()}`;
-      const response = await fetch(url, { credentials: "include" });
-      this.results = await response.json();
+      // Use FTS search via API (query length >= 2 will trigger FTS)
+      this.results = await api.getArticles(
+        this.searchQuery || undefined,
+        this.filters.page,
+        20,
+        this.filters.authorId || undefined
+      );
 
       // Update URL
       this.$router.replace({ query: Object.fromEntries(params) });
@@ -351,4 +441,5 @@ export default class SearchPage extends Vue {
   }
 }
 </script>
+
 

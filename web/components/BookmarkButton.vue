@@ -53,13 +53,9 @@ export default Vue.extend({
       return this.$store.getters["auth/isAuthenticated"];
     },
     isBookmarked(): boolean {
+      // Read bookmark state from store (populated on auth restore)
       return this.$store.getters["social/isBookmarked"](this.articleId);
     },
-  },
-  async mounted() {
-    if (this.isAuthenticated) {
-      await this.$store.dispatch("social/checkBookmarkStatus", this.articleId);
-    }
   },
   methods: {
     async handleClick() {

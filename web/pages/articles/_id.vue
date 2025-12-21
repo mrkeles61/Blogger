@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 font-inter">
+  <div class="min-h-screen bg-gray-900 font-inter">
     <!-- Loading State -->
     <div v-if="loading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div class="grid gap-8 lg:grid-cols-3">
@@ -15,11 +15,11 @@
 
     <!-- Error State -->
     <div v-else-if="error" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div class="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-        <p class="text-red-800 font-medium mb-4">{{ error }}</p>
+      <div class="bg-red-900 bg-opacity-20 border border-red-500 rounded-xl p-6 text-center">
+        <p class="text-red-400 font-medium mb-4">{{ error }}</p>
         <nuxt-link
           to="/"
-          class="inline-block px-6 py-3 bg-accent-orange text-white rounded-full font-semibold hover:bg-opacity-90 transition-soft"
+          class="inline-block px-6 py-3 bg-accent-purple text-white rounded-full font-semibold hover:bg-purple-700 transition-soft"
         >
           ← Ana Sayfaya Dön
         </nuxt-link>
@@ -32,7 +32,7 @@
         <!-- Main Content -->
         <div class="lg:col-span-2 space-y-8">
           <!-- Hero Section -->
-          <section class="relative bg-gradient-to-r from-accent-orange to-accent-blue rounded-2xl overflow-hidden shadow-xl">
+          <section class="relative bg-gradient-to-r from-purple-900 via-purple-800 to-blue-900 rounded-2xl overflow-hidden shadow-xl border border-purple-700 border-opacity-30">
             <div class="absolute inset-0 z-0 opacity-10">
               <svg class="w-full h-full" fill="none" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
                 <pattern id="pattern-hero" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
@@ -88,7 +88,7 @@
           </section>
 
           <!-- Action Buttons -->
-          <div class="flex flex-wrap items-center gap-4 bg-white rounded-xl shadow-sm p-6">
+          <div class="flex flex-wrap items-center gap-4 bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-700">
             <LikeButton 
               :article-id="article.id" 
               :like-count="article._count?.likes || 0" 
@@ -99,7 +99,7 @@
               <button
                 v-if="!canEdit && isAuthenticated"
                 @click="showReportModal = true"
-                class="px-4 py-2 text-gray-600 hover:text-red-600 transition-soft font-medium flex items-center gap-2"
+                class="px-4 py-2 text-gray-400 hover:text-red-400 transition-soft font-medium flex items-center gap-2"
                 title="Raporla"
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,7 +110,7 @@
               <div v-if="canEdit" class="flex gap-2">
                 <nuxt-link
                   :to="`/articles/${article.id}/edit`"
-                  class="px-4 py-2 bg-accent-blue text-white rounded-lg hover:bg-opacity-90 transition-soft font-medium"
+                  class="px-4 py-2 bg-accent-purple text-white rounded-lg hover:bg-purple-700 transition-soft font-medium"
                 >
                   Düzenle
                 </nuxt-link>
@@ -127,17 +127,17 @@
           <!-- Report Modal -->
           <div
             v-if="showReportModal"
-            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4"
             @click.self="showReportModal = false"
           >
-            <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-              <h2 class="text-2xl font-playfair font-bold text-gray-900 mb-4">Makaleyi Raporla</h2>
+            <div class="bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6 border border-gray-700">
+              <h2 class="text-2xl font-playfair font-bold text-white mb-4">Makaleyi Raporla</h2>
               <div class="mb-4">
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Sebep</label>
+                <label class="block text-sm font-semibold text-gray-300 mb-2">Sebep</label>
                 <textarea
                   v-model="reportReason"
                   rows="4"
-                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-blue"
+                  class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-purple focus:border-transparent text-white placeholder-gray-400"
                   placeholder="Lütfen raporlama sebebinizi belirtin..."
                 />
               </div>
@@ -151,7 +151,7 @@
                 </button>
                 <button
                   @click="showReportModal = false"
-                  class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-soft font-medium"
+                  class="px-4 py-2 text-gray-300 bg-gray-700 rounded-lg hover:bg-gray-600 transition-soft font-medium"
                 >
                   İptal
                 </button>
@@ -160,23 +160,23 @@
           </div>
 
           <!-- Article Content -->
-          <article class="bg-white rounded-xl shadow-sm p-8 md:p-12 prose prose-lg max-w-none">
-            <div class="whitespace-pre-wrap text-gray-800 leading-relaxed">{{ article.content }}</div>
+          <article class="bg-gray-800 rounded-xl shadow-sm p-8 md:p-12 prose prose-lg max-w-none border border-gray-700">
+            <div class="whitespace-pre-wrap text-gray-200 leading-relaxed">{{ article.content }}</div>
           </article>
 
           <!-- Author Spotlight Card -->
-          <div v-if="article && article.author" class="bg-white rounded-xl shadow-sm p-8 border border-gray-100">
+          <div v-if="article && article.author" class="bg-gray-800 rounded-xl shadow-sm p-8 border border-gray-700">
             <div class="flex flex-col md:flex-row items-start gap-6">
               <div class="flex-shrink-0">
                 <img
                   v-if="article.author.avatarUrl"
                   :src="article.author.avatarUrl"
                   :alt="article.author.displayName || article.author.username"
-                  class="w-24 h-24 rounded-full object-cover ring-4 ring-accent-orange ring-opacity-20"
+                  class="w-24 h-24 rounded-full object-cover ring-4 ring-accent-purple ring-opacity-30"
                 />
                 <div
                   v-else
-                  class="w-24 h-24 rounded-full bg-gradient-to-r from-accent-orange to-accent-blue flex items-center justify-center text-3xl font-bold text-white ring-4 ring-accent-orange ring-opacity-20"
+                  class="w-24 h-24 rounded-full bg-gradient-to-r from-accent-purple to-accent-blue flex items-center justify-center text-3xl font-bold text-white ring-4 ring-accent-purple ring-opacity-30"
                 >
                   {{ (article.author.displayName || article.author.username || "U")[0].toUpperCase() }}
                 </div>
@@ -185,7 +185,7 @@
                 <div class="flex items-center gap-2 mb-2">
                   <nuxt-link
                     :to="`/users/${article.author.id}`"
-                    class="text-2xl font-playfair font-bold text-gray-900 hover:text-accent-orange transition-soft"
+                    class="text-2xl font-playfair font-bold text-white hover:text-accent-purple transition-soft"
                   >
                     {{ article.author.displayName || article.author.username || "User" }}
                   </nuxt-link>
@@ -203,25 +203,25 @@
                     </svg>
                   </span>
                 </div>
-                <p v-if="article.author.username" class="text-gray-600 mb-2">@{{ article.author.username }}</p>
-                <p v-if="article.author.headline" class="text-lg text-gray-700 mb-3 font-medium">
+                <p v-if="article.author.username" class="text-gray-400 mb-2">@{{ article.author.username }}</p>
+                <p v-if="article.author.headline" class="text-lg text-white mb-3 font-medium">
                   {{ article.author.headline }}
                 </p>
-                <p v-if="article.author.bio" class="text-gray-600 mb-4">{{ article.author.bio }}</p>
+                <p v-if="article.author.bio" class="text-gray-300 mb-4">{{ article.author.bio }}</p>
                 <div class="flex flex-wrap items-center gap-4">
                   <FollowButton
                     :user-id="article.author.id"
                     :is-own-profile="article.author.id === currentUserId"
                   />
                   <button
-                    class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-soft font-medium"
+                    class="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-soft font-medium"
                     disabled
                   >
                     Mesaj
                   </button>
                   <span
                     v-if="article.author.role === 'Admin'"
-                    class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium"
+                    class="px-3 py-1 bg-purple-900 bg-opacity-30 text-purple-300 rounded-full text-sm font-medium border border-purple-700"
                   >
                     Admin
                   </span>
@@ -231,8 +231,8 @@
           </div>
 
           <!-- Comments Section -->
-          <div class="bg-white rounded-xl shadow-sm p-8">
-            <h2 class="text-2xl font-playfair font-bold mb-6">Yorumlar ({{ article._count?.comments || 0 }})</h2>
+          <div class="bg-gray-800 rounded-xl shadow-sm p-8 border border-gray-700">
+            <h2 class="text-2xl font-playfair font-bold mb-6 text-white">Yorumlar ({{ article._count?.comments || 0 }})</h2>
             <CommentList 
               :article-id="article.id" 
               @comment-added="handleCommentAdded"
@@ -246,8 +246,8 @@
           <!-- Sticky Container -->
           <div class="lg:sticky lg:top-24 space-y-6">
             <!-- Related Articles -->
-            <div v-if="relatedArticles.length > 0" class="bg-white rounded-xl shadow-sm p-6">
-              <h3 class="text-xl font-playfair font-bold mb-4 text-gray-900">İlgili Makaleler</h3>
+            <div v-if="relatedArticles.length > 0" class="bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-700">
+              <h3 class="text-xl font-playfair font-bold mb-4 text-white">İlgili Makaleler</h3>
               <div class="space-y-4">
                 <article
                   v-for="relatedArticle in relatedArticles.slice(0, 3)"
@@ -255,10 +255,10 @@
                   class="group cursor-pointer"
                 >
                   <nuxt-link :to="`/articles/${relatedArticle.id}`" class="block">
-                    <h4 class="font-semibold text-gray-900 mb-1 group-hover:text-accent-orange transition-soft line-clamp-2">
+                    <h4 class="font-semibold text-white mb-1 group-hover:text-accent-purple transition-soft line-clamp-2">
                       {{ relatedArticle.title }}
                     </h4>
-                    <p class="text-sm text-gray-600 line-clamp-2 mb-2">{{ relatedArticle.summary }}</p>
+                    <p class="text-sm text-gray-400 line-clamp-2 mb-2">{{ relatedArticle.summary }}</p>
                     <div class="flex items-center gap-2 text-xs text-gray-500">
                       <span>{{ formatDate(relatedArticle.publishedAt || relatedArticle.createdAt) }}</span>
                       <span>•</span>
@@ -270,24 +270,24 @@
             </div>
 
             <!-- Author Stats Card -->
-            <div v-if="article && article.author" class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-              <h3 class="text-xl font-playfair font-bold mb-4 text-gray-900">Yazar Hakkında</h3>
+            <div v-if="article && article.author" class="bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-700">
+              <h3 class="text-xl font-playfair font-bold mb-4 text-white">Yazar Hakkında</h3>
               <div class="space-y-4">
                 <div class="flex items-center justify-between">
-                  <span class="text-gray-600">Makaleler</span>
-                  <span class="font-semibold text-gray-900">{{ article.author.articlesCount || 0 }}</span>
+                  <span class="text-gray-400">Makaleler</span>
+                  <span class="font-semibold text-white">{{ article.author.articlesCount || 0 }}</span>
                 </div>
                 <div class="flex items-center justify-between">
-                  <span class="text-gray-600">Takipçiler</span>
-                  <span class="font-semibold text-gray-900">{{ article.author.followersCount || 0 }}</span>
+                  <span class="text-gray-400">Takipçiler</span>
+                  <span class="font-semibold text-white">{{ article.author.followersCount || 0 }}</span>
                 </div>
                 <div class="flex items-center justify-between">
-                  <span class="text-gray-600">Takip Edilen</span>
-                  <span class="font-semibold text-gray-900">{{ article.author.followingCount || 0 }}</span>
+                  <span class="text-gray-400">Takip Edilen</span>
+                  <span class="font-semibold text-white">{{ article.author.followingCount || 0 }}</span>
                 </div>
                 <nuxt-link
                   :to="`/users/${article.author.id}`"
-                  class="block mt-4 text-center px-4 py-2 bg-accent-orange text-white rounded-lg hover:bg-opacity-90 transition-soft font-medium"
+                  class="block mt-4 text-center px-4 py-2 bg-accent-purple text-white rounded-lg hover:bg-purple-700 transition-soft font-medium"
                 >
                   Profili Görüntüle
                 </nuxt-link>
@@ -479,7 +479,7 @@ export default class ArticleDetailPage extends Vue {
 
 <style scoped>
 .prose {
-  @apply text-gray-800;
+  @apply text-gray-200;
 }
 
 .prose p {

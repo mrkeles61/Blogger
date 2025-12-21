@@ -1,16 +1,16 @@
 <template>
   <div class="space-y-4">
     <div v-if="loading" class="text-center py-4">
-      <p class="text-gray-500">Loading comments...</p>
+      <p class="text-gray-400">Yorumlar yükleniyor...</p>
     </div>
 
-    <div v-else-if="comments.length === 0" class="text-center py-8 text-gray-500">
-      <p>No comments yet. Be the first to comment!</p>
+    <div v-else-if="comments.length === 0" class="text-center py-8 text-gray-400">
+      <p>Henüz yorum yok. İlk yorumu siz yapın!</p>
     </div>
 
     <div v-else class="space-y-4">
       <CommentItem
-        v-for="comment in comments"
+        v-for="comment in normalizedComments"
         :key="comment.id"
         :comment="comment"
         :article-id="articleId"
@@ -31,7 +31,7 @@
             ref="commentTextarea"
             rows="3"
             placeholder="Yorum yazın... (@ ile kullanıcıları bahsedin)"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-blue focus:border-transparent"
+            class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-purple focus:border-transparent text-white placeholder-gray-400"
             required
             @input="handleCommentInput"
           />
@@ -39,7 +39,7 @@
         <button
           type="submit"
           :disabled="submitting || !newComment.trim()"
-          class="px-6 py-2 bg-gradient-to-r from-accent-orange to-accent-blue text-white rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+          class="px-6 py-2 bg-accent-purple text-white rounded-lg hover:bg-purple-700 hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
         >
           {{ submitting ? "Gönderiliyor..." : "Yorum Yap" }}
         </button>
@@ -49,9 +49,9 @@
     <div v-else class="mt-6 text-center">
       <nuxt-link
         to="/login"
-        class="text-blue-600 hover:text-blue-700"
+        class="text-accent-purple hover:text-purple-300 transition-soft"
       >
-        Login to comment
+        Yorum yapmak için giriş yapın
       </nuxt-link>
     </div>
   </div>
@@ -93,6 +93,17 @@ export default Vue.extend({
     isAdmin(): boolean {
       return this.$store.getters["auth/isAdmin"];
     },
+    // Flatten nested replies into root comment's replies array
+    normalizedComments(): Comment[] {
+      return this.comments.map((comment) => {
+        const flattened = { ...comment };
+        if (comment.replies && comment.replies.length > 0) {
+          // Flatten all nested replies into a single level
+          flattened.replies = this.flattenReplies(comment.replies);
+        }
+        return flattened;
+      });
+    },
   },
   async mounted() {
     await this.loadComments();
@@ -124,7 +135,14 @@ export default Vue.extend({
 
       this.submitting = true;
       try {
-        const parentId = this.replyingTo?.id || null;
+        // If replying to a reply, find the root comment (parentId should be root comment's id)
+        let parentId: string | null = null;
+        if (this.replyingTo) {
+          // Find the root comment (comment without parentId)
+          const rootComment = this.findRootComment(this.replyingTo);
+          parentId = rootComment.id;
+        }
+        
         const result = await this.$store.dispatch("social/addComment", {
           articleId: this.articleId,
           content: this.newComment,
@@ -154,6 +172,59 @@ export default Vue.extend({
           textarea.setSelectionRange(textarea.value.length, textarea.value.length);
         }
       });
+    },
+    // Flatten nested replies into a single level
+    flattenReplies(replies: Comment[]): Comment[] {
+      const flattened: Comment[] = [];
+      for (const reply of replies) {
+        flattened.push(reply);
+        // If this reply has nested replies, flatten them too
+        if (reply.replies && reply.replies.length > 0) {
+          flattened.push(...this.flattenReplies(reply.replies));
+        }
+      }
+      return flattened;
+    },
+    // Find the root comment (top-level comment without parentId)
+    findRootComment(comment: Comment): Comment {
+      // If comment has no parentId, it's already the root
+      if (!comment.parentId) {
+        return comment;
+      }
+      // Search through all comments and their replies to find the root
+      for (const rootComment of this.comments) {
+        if (rootComment.id === comment.parentId) {
+          // Found the root comment
+          return rootComment;
+        }
+        // Search in this root comment's replies
+        const found = this.findCommentInReplies(rootComment, comment.parentId);
+        if (found) {
+          // Found the parent, now find its root
+          return this.findRootComment(found);
+        }
+      }
+      // Fallback: if we can't find it, assume it's a root comment
+      // This shouldn't happen, but handle gracefully
+      return comment;
+    },
+    // Helper to find a comment in nested replies
+    findCommentInReplies(comment: Comment, commentId: string): Comment | null {
+      if (comment.id === commentId) {
+        return comment;
+      }
+      if (comment.replies) {
+        for (const reply of comment.replies) {
+          if (reply.id === commentId) {
+            return reply;
+          }
+          const found = this.findCommentInReplies(reply, commentId);
+          if (found) {
+            return found;
+          }
+        }
+      }
+      return null;
     },
     handleCommentInput() {
       // Could add mention autocomplete here

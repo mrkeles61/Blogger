@@ -1,6 +1,6 @@
 <template>
-  <div ref="commentContainer" class="comment-item" :class="{ 'ml-8': comment.parentId }">
-    <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-soft">
+  <div ref="commentContainer" class="comment-item" :class="{ 'ml-6': comment.parentId }">
+    <div class="bg-gray-800 rounded-lg p-4 hover:bg-gray-750 transition-soft border border-gray-700">
       <div class="flex items-start gap-3">
         <img
           v-if="comment.user?.avatarUrl"
@@ -10,33 +10,33 @@
         />
         <div
           v-else
-          class="w-10 h-10 rounded-full bg-gradient-shift flex items-center justify-center text-sm font-semibold text-white"
+          class="w-10 h-10 rounded-full bg-gradient-to-r from-accent-purple to-accent-blue flex items-center justify-center text-sm font-semibold text-white"
         >
           {{ (comment.user?.displayName || comment.user?.username || "U")[0].toUpperCase() }}
         </div>
 
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 mb-1 flex-wrap">
-            <span class="font-semibold text-gray-900">
+            <span class="font-semibold text-white">
               {{ comment.user?.displayName || comment.user?.username || "User" }}
             </span>
-            <span class="text-sm text-gray-500">
+            <span class="text-sm text-gray-400">
               {{ formatDate(comment.createdAt) }}
             </span>
             <span
               v-if="comment.parentId"
-              class="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full"
+              class="text-xs text-blue-400 bg-blue-900 bg-opacity-30 px-2 py-0.5 rounded-full border border-blue-700"
             >
               Yanıt
             </span>
           </div>
-          <p class="text-gray-700 whitespace-pre-wrap">{{ comment.content }}</p>
+          <p class="text-gray-200 whitespace-pre-wrap">{{ comment.content }}</p>
 
           <div class="mt-3 flex items-center gap-3">
             <button
               v-if="isAuthenticated"
               @click="$emit('reply', comment)"
-              class="text-sm text-gray-600 hover:text-accent-orange transition-soft flex items-center gap-1"
+              class="text-sm text-gray-400 hover:text-accent-purple transition-soft flex items-center gap-1"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
@@ -46,20 +46,20 @@
             <button
               v-if="!comment.parentId && isAuthenticated"
               @click="showReportModal = true"
-              class="text-sm text-gray-600 hover:text-red-600 transition-soft"
+              class="text-sm text-gray-400 hover:text-red-400 transition-soft"
             >
               Raporla
             </button>
             <div v-if="canEditComment" class="ml-auto flex gap-2">
               <button
                 @click="$emit('edit', comment)"
-                class="text-sm text-blue-600 hover:text-blue-700"
+                class="text-sm text-blue-400 hover:text-blue-300"
               >
                 Düzenle
               </button>
               <button
                 @click="showDeleteConfirm = true"
-                class="text-sm text-red-600 hover:text-red-700"
+                class="text-sm text-red-400 hover:text-red-300"
               >
                 Sil
               </button>
@@ -78,14 +78,14 @@
             <div
               v-if="showDeleteConfirm"
               ref="deleteConfirmRow"
-              class="mt-3 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm flex items-center justify-between"
+              class="mt-3 bg-red-900 bg-opacity-20 border border-red-700 rounded-lg px-4 py-3 text-sm flex items-center justify-between"
             >
-              <span class="text-red-800 font-medium">Bu yorumu silmek istiyor musun?</span>
+              <span class="text-red-300 font-medium">Bu yorumu silmek istiyor musun?</span>
               <div class="flex items-center gap-2">
                 <button
                   @click="showDeleteConfirm = false"
                   :disabled="deleting"
-                  class="px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-soft font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="px-3 py-1.5 rounded-lg border border-gray-600 text-gray-300 bg-gray-700 hover:bg-gray-600 transition-soft font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Vazgeç
                 </button>
@@ -123,7 +123,7 @@
       </div>
     </div>
 
-    <!-- Nested Replies -->
+    <!-- Replies (flattened, all at same indent level) -->
     <div v-if="comment.replies && comment.replies.length > 0" class="mt-3 space-y-3">
       <CommentItem
         v-for="reply in comment.replies"
@@ -141,17 +141,17 @@
     <!-- Report Modal -->
     <div
       v-if="showReportModal"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4"
       @click.self="showReportModal = false"
     >
-      <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-        <h2 class="text-xl font-bold text-gray-900 mb-4">Yorumu Raporla</h2>
+      <div class="bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6 border border-gray-700">
+        <h2 class="text-xl font-bold text-white mb-4">Yorumu Raporla</h2>
         <div class="mb-4">
-          <label class="block text-sm font-semibold text-gray-700 mb-2">Sebep</label>
+          <label class="block text-sm font-semibold text-gray-300 mb-2">Sebep</label>
           <textarea
             v-model="reportReason"
             rows="4"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-blue"
+            class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-purple focus:border-transparent text-white placeholder-gray-400"
             placeholder="Lütfen raporlama sebebinizi belirtin..."
           />
         </div>
@@ -165,7 +165,7 @@
           </button>
           <button
             @click="showReportModal = false"
-            class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-soft"
+            class="px-4 py-2 text-gray-300 bg-gray-700 rounded-lg hover:bg-gray-600 transition-soft"
           >
             İptal
           </button>

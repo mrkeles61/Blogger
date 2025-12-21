@@ -17,19 +17,13 @@ const authPlugin: Plugin = async ({ store, app }) => {
       console.log("[AUTH DEBUG] fetchCurrentUser succeeded, user:", user);
       console.log("[AUTH DEBUG] Auth state after restore:", store.getters["auth/isAuthenticated"]);
       
-      // Session restored successfully - load bookmarks
+      // Session restored successfully - load bookmarks into store
       try {
-        const bookmarks = await api.getBookmarks();
-        // Update store with bookmark statuses
-        for (const bookmark of bookmarks) {
-          store.commit("social/setBookmarked", {
-            articleId: bookmark.article.id,
-            bookmarked: true,
-          });
-        }
+        await store.dispatch("social/loadBookmarks");
+        console.log("[AUTH DEBUG] Bookmarks loaded into store");
       } catch (err) {
-        // Bookmarks loading failed - not critical
-        console.log("Could not load bookmarks:", err);
+        // Bookmarks loading failed - not critical (user might not be authenticated or no bookmarks)
+        console.log("[AUTH DEBUG] Could not load bookmarks:", err);
       }
     } catch (error: any) {
       // fetchCurrentUser failed - either not authenticated or backend unavailable

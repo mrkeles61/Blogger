@@ -39,7 +39,15 @@ export async function getUserById(id: string) {
     throw new Error("User not found");
   }
 
-  return user;
+  // Get comment count from database
+  const commentsCount = await prisma.comment.count({
+    where: { userId: id, deletedAt: null },
+  });
+
+  return {
+    ...user,
+    commentsCount,
+  };
 }
 
 export async function getUserByUsername(username: string) {
@@ -70,7 +78,15 @@ export async function getUserByUsername(username: string) {
     throw new Error("User not found");
   }
 
-  return user;
+  // Get comment count from database
+  const commentsCount = await prisma.comment.count({
+    where: { userId: user.id, deletedAt: null },
+  });
+
+  return {
+    ...user,
+    commentsCount,
+  };
 }
 
 export async function listUsers(search?: string, limit = 20, offset = 0) {
@@ -137,7 +153,7 @@ export async function updateUserProfile(
     // Role and isVerified updates would go here if needed
   }
 
-  return prisma.user.update({
+  const updatedUser = await prisma.user.update({
     where: { id: userId },
     data: updateData,
     select: {
@@ -160,6 +176,16 @@ export async function updateUserProfile(
       updatedAt: true,
     },
   });
+
+  // Get comment count from database
+  const commentsCount = await prisma.comment.count({
+    where: { userId: userId, deletedAt: null },
+  });
+
+  return {
+    ...updatedUser,
+    commentsCount,
+  };
 }
 
 export async function getUserArticles(userId: string, includeDrafts = false) {
@@ -168,7 +194,7 @@ export async function getUserArticles(userId: string, includeDrafts = false) {
     where.publishedAt = { not: null };
   }
 
-  return prisma.article.findMany({
+  const articles = await prisma.article.findMany({
     where,
     orderBy: { createdAt: "desc" },
     include: {
@@ -183,11 +209,32 @@ export async function getUserArticles(userId: string, includeDrafts = false) {
       _count: {
         select: {
           likes: true,
-          comments: true,
         },
       },
     },
   });
+
+  // Get comment counts from database (excluding soft-deleted comments)
+  const articlesWithCommentCounts = await Promise.all(
+    articles.map(async (article) => {
+      const activeComments = await prisma.comment.count({
+        where: {
+          articleId: article.id,
+          deletedAt: null,
+        },
+      });
+
+      return {
+        ...article,
+        _count: {
+          ...article._count,
+          comments: activeComments,
+        },
+      };
+    })
+  );
+
+  return articlesWithCommentCounts;
 }
 
 export async function updateUserStats(userId: string) {

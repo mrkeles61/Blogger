@@ -72,6 +72,7 @@ export interface User {
   followersCount?: number;
   followingCount?: number;
   articlesCount?: number;
+  commentsCount?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -241,11 +242,13 @@ export const api = {
   },
 
   // Articles
-  async getArticles(search?: string, authorId?: string): Promise<ArticlesResponse> {
+  async getArticles(search?: string, page = 1, limit = 20, authorId?: string): Promise<ArticlesResponse> {
     const params = new URLSearchParams();
-    if (search) params.append("search", search);
+    if (search) params.append("query", search);
     if (authorId) params.append("authorId", authorId);
-    const url = `${API_BASE}/api/articles${params.toString() ? `?${params}` : ""}`;
+    params.append("page", page.toString());
+    params.append("limit", limit.toString());
+    const url = `${API_BASE}/api/articles?${params.toString()}`;
     const response = await fetchWithAuth(url);
     return handleResponse<ArticlesResponse>(response);
   },

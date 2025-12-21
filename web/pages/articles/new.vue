@@ -1,23 +1,23 @@
 <template>
-  <div class="min-h-screen bg-gray-50 font-inter">
+  <div class="min-h-screen bg-gray-900 font-inter">
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div class="mb-6">
         <nuxt-link
           to="/"
-          class="text-gray-600 hover:text-accent-orange transition-soft inline-flex items-center gap-2 mb-4"
+          class="text-gray-400 hover:text-white transition-soft inline-flex items-center gap-2 mb-4"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          Ana Sayfaya Dön
+          ← Ana Sayfaya Dön
         </nuxt-link>
-        <h1 class="text-3xl font-playfair font-bold text-gray-900">Yeni Makale Oluştur</h1>
+        <h1 class="text-3xl font-playfair font-bold text-white">Yeni Makale Oluştur</h1>
       </div>
 
       <!-- Validation Errors -->
-      <div v-if="validationErrors.length > 0" class="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
-        <h3 class="font-semibold text-red-800 mb-2">Doğrulama Hataları:</h3>
-        <ul class="list-disc list-inside text-red-700 space-y-1">
+      <div v-if="validationErrors.length > 0" class="mb-6 bg-red-900 bg-opacity-20 border border-red-500 rounded-xl p-4">
+        <h3 class="font-semibold text-red-400 mb-2">Doğrulama Hataları:</h3>
+        <ul class="list-disc list-inside text-red-300 space-y-1">
           <li v-for="error in validationErrors" :key="error">{{ error }}</li>
         </ul>
       </div>
@@ -25,45 +25,51 @@
       <div class="grid gap-8 lg:grid-cols-3">
         <!-- Main Editor Column -->
         <div class="lg:col-span-2 space-y-6">
-          <div class="bg-white rounded-xl shadow-sm p-6 md:p-8">
+          <div class="bg-gray-800 rounded-xl shadow-sm p-6 md:p-8">
             <form id="article-form" @submit.prevent="handleSubmit" class="space-y-6">
               <!-- Title -->
               <div>
-                <label for="title" class="block text-sm font-semibold text-gray-700 mb-2">
-                  Başlık (max 120 karakter)
-                </label>
+                <div class="flex items-center justify-between mb-2">
+                  <label for="title" class="block text-sm font-semibold text-gray-300">
+                    Başlık
+                  </label>
+                  <span class="text-xs text-gray-500">(max 120 karakter)</span>
+                </div>
                 <input
                   id="title"
                   v-model="form.title"
                   type="text"
                   required
                   maxlength="120"
-                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-blue focus:border-transparent transition-soft text-lg font-medium"
+                  class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-purple focus:border-transparent transition-soft text-lg font-medium text-white placeholder-gray-400"
                   placeholder="Makale başlığını girin"
                 />
-                <p class="mt-1 text-sm text-gray-500">{{ form.title.length }}/120 karakter</p>
+                <p class="mt-1 text-sm text-gray-400">{{ form.title.length }}/120 karakter</p>
               </div>
 
               <!-- Summary -->
               <div>
-                <label for="summary" class="block text-sm font-semibold text-gray-700 mb-2">
-                  Özet (max 280 karakter)
-                </label>
+                <div class="flex items-center justify-between mb-2">
+                  <label for="summary" class="block text-sm font-semibold text-gray-300">
+                    Özet
+                  </label>
+                  <span class="text-xs text-gray-500">(max 280 karakter)</span>
+                </div>
                 <textarea
                   id="summary"
                   v-model="form.summary"
                   rows="3"
                   required
                   maxlength="280"
-                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-blue focus:border-transparent transition-soft resize-none"
+                  class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-purple focus:border-transparent transition-soft resize-none text-white placeholder-gray-400"
                   placeholder="Makale özetini girin"
                 />
-                <p class="mt-1 text-sm text-gray-500">{{ form.summary.length }}/280 karakter</p>
+                <p class="mt-1 text-sm text-gray-400">{{ form.summary.length }}/280 karakter</p>
               </div>
 
               <!-- Content with Floating Toolbar -->
               <div>
-                <label for="content" class="block text-sm font-semibold text-gray-700 mb-2">
+                <label for="content" class="block text-sm font-semibold text-gray-300 mb-2">
                   İçerik
                 </label>
                 <div class="relative">
@@ -74,11 +80,11 @@
                     v-model="form.content"
                     rows="15"
                     required
-                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-blue focus:border-transparent transition-soft resize-none font-mono text-sm"
+                    class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-purple focus:border-transparent transition-soft resize-none font-mono text-sm text-white placeholder-gray-400"
                     placeholder="Makale içeriğinizi buraya yazın..."
                   />
                 </div>
-                <p class="mt-2 text-sm text-gray-500">
+                <p class="mt-2 text-sm text-gray-400">
                   İpucu: Markdown formatı desteklenir. Başlık için #, kalın için **text**, liste için - kullanabilirsiniz.
                 </p>
               </div>
@@ -88,32 +94,32 @@
 
         <!-- Sticky Publish Panel -->
         <div class="lg:col-span-1">
-          <div class="lg:sticky lg:top-24 bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <h2 class="text-xl font-playfair font-bold mb-6 text-gray-900">Yayın Bilgileri</h2>
+          <div class="lg:sticky lg:top-24 bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-700">
+            <h2 class="text-xl font-playfair font-bold mb-6 text-white">Yayın Bilgileri</h2>
 
             <!-- Status Dropdown -->
             <div class="mb-6">
-              <label for="status" class="block text-sm font-semibold text-gray-700 mb-2">
+              <label for="status" class="block text-sm font-semibold text-gray-300 mb-2">
                 Durum
               </label>
               <select
                 id="status"
                 v-model="form.status"
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-blue focus:border-transparent transition-soft"
+                class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-purple focus:border-transparent transition-soft text-white"
                 :disabled="!canPublish"
               >
                 <option value="Draft">Taslak</option>
                 <option v-if="canPublish" value="Published">Yayınla</option>
                 <option v-if="canPublish" value="Scheduled">Zamanlanmış</option>
               </select>
-              <p v-if="!canPublish" class="mt-1 text-sm text-yellow-600">
+              <p v-if="!canPublish" class="mt-1 text-sm text-yellow-400">
                 ⚠️ Sadece Admin ve Editor rolü makale yayınlayabilir veya zamanlayabilir
               </p>
             </div>
 
             <!-- Scheduled Date Picker -->
             <div v-if="form.status === 'Scheduled'" class="mb-6">
-              <label for="scheduledFor" class="block text-sm font-semibold text-gray-700 mb-2">
+              <label for="scheduledFor" class="block text-sm font-semibold text-gray-300 mb-2">
                 Zamanlanmış Tarih
               </label>
               <input
@@ -122,24 +128,24 @@
                 type="datetime-local"
                 :min="minScheduledDate"
                 required
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-blue focus:border-transparent transition-soft"
+                class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-purple focus:border-transparent transition-soft text-white"
               />
-              <p class="mt-1 text-sm text-gray-500">
+              <p class="mt-1 text-sm text-gray-400">
                 Gelecekteki bir tarih seçin
               </p>
             </div>
 
             <!-- Status Preview -->
-            <div v-if="form.status === 'Published'" class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <p class="text-sm text-green-800">
+            <div v-if="form.status === 'Published'" class="mb-6 p-4 bg-green-900 bg-opacity-20 border border-green-500 rounded-lg">
+              <p class="text-sm text-green-300">
                 <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 Makale hemen yayınlanacak
               </p>
             </div>
-            <div v-else-if="form.status === 'Scheduled' && form.scheduledFor" class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p class="text-sm text-blue-800">
+            <div v-else-if="form.status === 'Scheduled' && form.scheduledFor" class="mb-6 p-4 bg-blue-900 bg-opacity-20 border border-blue-500 rounded-lg">
+              <p class="text-sm text-blue-300">
                 <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
@@ -152,13 +158,13 @@
               <button
                 @click="handleSubmit"
                 :disabled="submitting"
-                class="w-full px-6 py-3 bg-gradient-to-r from-accent-orange to-accent-blue text-white rounded-lg hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                class="w-full px-6 py-3 bg-accent-purple text-white rounded-lg hover:bg-purple-700 hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
                 {{ submitting ? "Kaydediliyor..." : getSubmitButtonText() }}
               </button>
               <nuxt-link
                 to="/"
-                class="block w-full text-center px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-soft font-medium"
+                class="block w-full text-center px-6 py-3 text-gray-400 hover:text-white transition-soft font-medium"
               >
                 İptal
               </nuxt-link>
@@ -226,6 +232,9 @@ export default Vue.extend({
                 .map((line) => `- ${line}`)
                 .join("\n")
             : "- List item";
+          break;
+        case "code":
+          replacement = `\`${selectedText || "code"}\``;
           break;
         case "link":
           replacement = `[${selectedText || "link text"}](url)`;

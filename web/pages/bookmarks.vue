@@ -1,18 +1,18 @@
 <template>
-  <div class="min-h-screen bg-gray-50 font-inter">
+  <div class="min-h-screen bg-gray-900 font-inter">
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div class="mb-8">
-        <h1 class="text-3xl font-playfair font-bold text-gray-900 mb-2">Kaydedilenler</h1>
-        <p class="text-gray-600">Beğendiğiniz makaleleri buradan bulabilirsiniz</p>
+        <h1 class="text-3xl font-playfair font-bold text-white mb-2">Kaydedilenler</h1>
+        <p class="text-gray-300">Beğendiğiniz makaleleri buradan bulabilirsiniz</p>
       </div>
 
       <!-- Loading State -->
-      <div v-if="loading" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div v-if="loading" class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
         <ShimmerPlaceholder v-for="n in 6" :key="n" class="h-64 rounded-xl" />
       </div>
 
       <!-- Empty State -->
-      <div v-else-if="bookmarks.length === 0" class="bg-white rounded-xl shadow-sm p-12 text-center">
+      <div v-else-if="bookmarks.length === 0" class="bg-gray-800 rounded-xl shadow-md p-12 text-center border border-gray-700">
         <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
@@ -21,34 +21,37 @@
             d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
           />
         </svg>
-        <p class="text-gray-500 text-lg mb-2">Henüz kayıtlı makale yok</p>
+        <p class="text-gray-300 text-lg mb-2">Henüz kayıtlı makale yok</p>
         <p class="text-gray-400 mb-6">Beğendiğiniz makaleleri kaydetmek için makale detay sayfasındaki kaydet butonunu kullanın</p>
         <nuxt-link
           to="/"
-          class="inline-block px-6 py-3 bg-gradient-to-r from-accent-orange to-accent-blue text-white rounded-lg hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 font-semibold"
+          class="inline-block px-6 py-3 bg-accent-purple text-white rounded-full hover:bg-purple-700 hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 font-semibold"
         >
           Makalelere Göz At
         </nuxt-link>
       </div>
 
       <!-- Bookmarks Grid -->
-      <div v-else class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div v-else class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
         <article
           v-for="bookmark in bookmarks"
           :key="bookmark.id"
-          class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group"
+          class="bg-slate-900/60 border border-white/10 rounded-xl shadow-lg transition-all duration-300 overflow-hidden group"
         >
           <ArticleCard
             :article="bookmark.article"
+            :show-bookmark="true"
+            :is-bookmarked="true"
             @click="$router.push(`/articles/${bookmark.article.id}`)"
+            @bookmark="handleUnbookmark(bookmark.article.id)"
           />
-          <div class="p-4 border-t border-gray-100 flex items-center justify-between">
-            <span class="text-sm text-gray-500">
+          <div class="p-4 border-t border-white/10 flex items-center justify-between">
+            <span class="text-sm text-gray-400">
               {{ formatDate(bookmark.createdAt) }} tarihinde kaydedildi
             </span>
             <button
               @click.stop="handleUnbookmark(bookmark.article.id)"
-              class="text-red-600 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-soft"
+              class="text-red-400 hover:text-red-300 hover:bg-red-900 hover:bg-opacity-20 p-2 rounded-lg transition-soft"
               title="Kaydı kaldır"
               aria-label="Kaydı kaldır"
             >
@@ -70,10 +73,16 @@
 <script lang="ts">
 import Vue from "vue";
 import { api, Bookmark } from "~/utils/api";
+import ArticleCard from "~/components/ArticleCard.vue";
+import ShimmerPlaceholder from "~/components/ShimmerPlaceholder.vue";
 
 export default Vue.extend({
   name: "BookmarksPage",
   middleware: "auth",
+  components: {
+    ArticleCard,
+    ShimmerPlaceholder,
+  },
   data() {
     return {
       bookmarks: [] as Bookmark[],

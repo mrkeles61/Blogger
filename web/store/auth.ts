@@ -19,11 +19,18 @@ export const mutations = {
 };
 
 export const actions = {
-  async login({ commit }: any, { email, password }: { email: string; password: string }) {
+  async login({ commit, dispatch }: any, { email, password }: { email: string; password: string }) {
     commit("setLoading", true);
     try {
       const response = await api.login(email, password);
       commit("setUser", response.user);
+      // Load bookmarks after successful login
+      try {
+        await dispatch("social/loadBookmarks", null, { root: true });
+      } catch (err) {
+        // Bookmarks loading failed - not critical
+        console.log("Could not load bookmarks after login:", err);
+      }
       return response.user;
     } catch (error: any) {
       // Re-throw with better error message
@@ -40,6 +47,8 @@ export const actions = {
       console.error("Logout error:", error);
     } finally {
       commit("setUser", null);
+      // Clear bookmarks on logout (commit directly to social module)
+      commit("social/clearBookmarks", null, { root: true });
     }
   },
   async fetchCurrentUser({ commit }: any) {

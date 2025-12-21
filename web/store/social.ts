@@ -16,6 +16,9 @@ export const mutations = {
   setBookmarked(state: SocialState, payload: { articleId: string; bookmarked: boolean }) {
     state.bookmarks = { ...state.bookmarks, [payload.articleId]: payload.bookmarked };
   },
+  clearBookmarks(state: SocialState) {
+    state.bookmarks = {};
+  },
   setFollowing(state: SocialState, payload: { userId: string; following: boolean }) {
     state.following = { ...state.following, [payload.userId]: payload.following };
   },
@@ -78,13 +81,31 @@ export const actions = {
       commit("setLiked", { articleId, liked: false });
     }
   },
+  async loadBookmarks({ commit }: any) {
+    try {
+      const bookmarks = await api.getBookmarks();
+      // Update store with bookmark statuses for all bookmarked articles
+      for (const bookmark of bookmarks) {
+        commit("setBookmarked", {
+          articleId: bookmark.article.id,
+          bookmarked: true,
+        });
+      }
+      return bookmarks;
+    } catch (error) {
+      // Not authenticated or error - clear all bookmarks
+      commit("clearBookmarks");
+      throw error;
+    }
+  },
   async checkBookmarkStatus({ commit }: any, articleId: string) {
     // Note: API doesn't have a direct check endpoint, so we'll infer from bookmarks list
     // For now, we'll just set to false and let toggle handle it
     commit("setBookmarked", { articleId, bookmarked: false });
   },
   async toggleBookmark({ commit, state }: any, articleId: string) {
-    const currentlyBookmarked = state.bookmarks[articleId];
+    const currentlyBookmarked = state.bookmarks[articleId] || false;
+    // Optimistic update - update UI immediately
     commit("setBookmarked", { articleId, bookmarked: !currentlyBookmarked });
 
     try {
@@ -93,7 +114,9 @@ export const actions = {
       } else {
         await api.bookmarkArticle(articleId);
       }
+      // Success - state already updated optimistically
     } catch (error) {
+      // Revert on error
       commit("setBookmarked", { articleId, bookmarked: currentlyBookmarked });
       throw error;
     }

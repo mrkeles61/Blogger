@@ -2,14 +2,14 @@
   <button
     @click="handleClick"
     :disabled="loading || isOwnProfile"
-    class="px-4 py-2 rounded-lg transition"
+    class="px-6 py-3 rounded-lg transition-all duration-300 font-semibold whitespace-nowrap"
     :class="
       isFollowing
-        ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-        : 'bg-blue-600 text-white hover:bg-blue-700'
+        ? 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'
+        : 'bg-accent-purple text-white hover:bg-purple-700 hover:shadow-lg transform hover:-translate-y-0.5'
     "
   >
-    {{ isFollowing ? "Following" : "Follow" }}
+    {{ isFollowing ? "Takip Ediliyor" : "Takip Et" }}
   </button>
 </template>
 

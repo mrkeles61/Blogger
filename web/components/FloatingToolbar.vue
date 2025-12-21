@@ -1,9 +1,9 @@
 <template>
-  <div class="bg-white rounded-lg shadow-lg p-2 flex items-center gap-2 border border-gray-200 mb-2">
+  <div class="bg-gray-700 rounded-lg shadow-lg p-2 flex items-center gap-2 border border-gray-600 mb-2">
     <button
       type="button"
       @click="handleFormat('bold')"
-      class="p-2 hover:bg-gray-100 rounded transition-soft"
+      class="p-2 hover:bg-gray-600 rounded transition-soft text-gray-300 hover:text-white"
       title="Bold"
       aria-label="Bold"
     >
@@ -15,7 +15,7 @@
     <button
       type="button"
       @click="handleFormat('italic')"
-      class="p-2 hover:bg-gray-100 rounded transition-soft"
+      class="p-2 hover:bg-gray-600 rounded transition-soft text-gray-300 hover:text-white"
       title="Italic"
       aria-label="Italic"
     >
@@ -23,11 +23,22 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
       </svg>
     </button>
-    <div class="w-px h-6 bg-gray-300"></div>
+    <button
+      type="button"
+      @click="handleFormat('code')"
+      class="p-2 hover:bg-gray-600 rounded transition-soft text-gray-300 hover:text-white"
+      title="Code"
+      aria-label="Code"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+    </button>
+    <div class="w-px h-6 bg-gray-600"></div>
     <button
       type="button"
       @click="handleFormat('list')"
-      class="p-2 hover:bg-gray-100 rounded transition-soft"
+      class="p-2 hover:bg-gray-600 rounded transition-soft text-gray-300 hover:text-white"
       title="List"
       aria-label="List"
     >
@@ -38,7 +49,7 @@
     <button
       type="button"
       @click="handleFormat('link')"
-      class="p-2 hover:bg-gray-100 rounded transition-soft"
+      class="p-2 hover:bg-gray-600 rounded transition-soft text-gray-300 hover:text-white"
       title="Link"
       aria-label="Link"
     >
