@@ -24,13 +24,13 @@ export async function authenticate(
     console.log("[AUTH DEBUG] Cookie name looking for:", COOKIE_NAME);
     console.log("[AUTH DEBUG] Cookie exists?", req.cookies && req.cookies[COOKIE_NAME] ? "YES" : "NO");
     console.log("[AUTH DEBUG] Authorization header:", req.headers.authorization ? "EXISTS" : "MISSING");
-    
+
     let token: string | undefined;
 
     // Try to get token from cookie
     if (req.cookies && req.cookies[COOKIE_NAME]) {
       token = req.cookies[COOKIE_NAME];
-      console.log("[AUTH DEBUG] Token found in cookie, length:", token.length);
+      console.log("[AUTH DEBUG] Token found in cookie, length:", token!.length);
     }
     // Try to get token from Authorization header
     else if (req.headers.authorization) {

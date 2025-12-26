@@ -4,9 +4,9 @@ export interface UpdateProfileInput {
   displayName?: string;
   username?: string;
   bio?: string;
-  avatarUrl?: string;
+  avatarUrl?: string | null;
   location?: string;
-  website?: string;
+  website?: string | null;
   headline?: string;
   socialLinks?: string;
 }

@@ -12,7 +12,7 @@ const isProduction = process.env.NODE_ENV === "production";
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: isProduction, // Only secure in production (HTTPS required)
-  sameSite: (isProduction ? "strict" : "lax") as const,
+  sameSite: isProduction ? ("strict" as const) : ("lax" as const),
   maxAge: 24 * 60 * 60 * 1000, // 1 day
   path: "/", // Ensure cookie is available for all paths
   // Don't set domain in dev - allows localhost and 127.0.0.1 to work
@@ -67,7 +67,7 @@ authRouter.post("/logout", (req, res) => {
   res.clearCookie(COOKIE_NAME, {
     httpOnly: true,
     secure: isProduction,
-    sameSite: (isProduction ? "strict" : "lax") as const,
+    sameSite: isProduction ? ("strict" as const) : ("lax" as const),
     path: "/",
     ...(isProduction && process.env.COOKIE_DOMAIN ? { domain: process.env.COOKIE_DOMAIN } : {}),
   });
