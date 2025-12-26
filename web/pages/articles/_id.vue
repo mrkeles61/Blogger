@@ -344,7 +344,7 @@ export default class ArticleDetailPage extends Vue {
       }
       // Load related articles by same author
       if (this.article?.authorId) {
-        const result = await api.getArticles(undefined, this.article.authorId);
+        const result = await api.getArticles(undefined, 1, 20, this.article.authorId);
         this.relatedArticles = result.items.filter((a) => a.id !== id).slice(0, 5);
       }
     } catch (err: any) {
@@ -449,9 +449,9 @@ export default class ArticleDetailPage extends Vue {
     // Update article like count in real-time
     if (this.article && this.article.id === payload.articleId) {
       if (!this.article._count) {
-        this.$set(this.article, '_count', { likes: 0, comments: 0 });
+        this.article._count = { likes: 0, comments: 0 };
       }
-      this.$set(this.article._count, 'likes', payload.likeCount);
+      this.article._count.likes = payload.likeCount;
     }
   }
 
@@ -459,9 +459,9 @@ export default class ArticleDetailPage extends Vue {
     // Update comment count from backend response
     if (this.article && payload?.commentCount !== undefined) {
       if (!this.article._count) {
-        this.$set(this.article, '_count', { likes: 0, comments: 0 });
+        this.article._count = { likes: 0, comments: 0 };
       }
-      this.$set(this.article._count, 'comments', payload.commentCount);
+      this.article._count.comments = payload.commentCount;
     }
   }
 
@@ -469,9 +469,9 @@ export default class ArticleDetailPage extends Vue {
     // Update comment count from backend response
     if (this.article && payload?.commentCount !== undefined) {
       if (!this.article._count) {
-        this.$set(this.article, '_count', { likes: 0, comments: 0 });
+        this.article._count = { likes: 0, comments: 0 };
       }
-      this.$set(this.article._count, 'comments', payload.commentCount);
+      this.article._count.comments = payload.commentCount;
     }
   }
 }

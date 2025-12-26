@@ -235,7 +235,16 @@ export const api = {
     console.log("[AUTH DEBUG] Request options:", { credentials: "include" });
     const response = await fetchWithAuth(`${API_BASE}/api/auth/me`);
     console.log("[AUTH DEBUG] Response status:", response.status);
-    console.log("[AUTH DEBUG] Response headers:", Object.fromEntries(response.headers.entries()));
+    // Log headers safely for debugging
+    try {
+      const headersObj: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        headersObj[key] = value;
+      });
+      console.log("[AUTH DEBUG] Response headers:", headersObj);
+    } catch {
+      console.log("[AUTH DEBUG] Could not log response headers");
+    }
     const result = await handleResponse<AuthResponse>(response);
     console.log("[AUTH DEBUG] Response data:", result);
     return result;

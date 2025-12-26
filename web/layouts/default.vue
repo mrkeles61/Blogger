@@ -422,9 +422,6 @@ export default Vue.extend({
         this.notificationsLoading = false;
       }
     },
-    closeUserMenu() {
-      this.showUserMenu = false;
-    },
     async handleLogout() {
       this.closeUserMenu();
       try {
