@@ -6,11 +6,11 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// Note: SQLite doesn't support enums, so we use String types
+// Note: Using String types for role/status fields for simplicity
 // Role: "Admin" | "Editor" | "Viewer"
 // ArticleStatus: "Draft" | "Published" | "Scheduled"
 // CollaboratorRole: "CoAuthor" | "Reviewer"
