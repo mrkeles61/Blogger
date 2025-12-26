@@ -176,6 +176,7 @@
 <script lang="ts">
 import { Component, Vue } from "nuxt-property-decorator";
 import ShimmerPlaceholder from "~/components/ShimmerPlaceholder.vue";
+import { getApiBase } from "~/utils/api";
 
 @Component({
   components: {
@@ -202,7 +203,7 @@ export default class DashboardPage extends Vue {
       if (!userId) return;
 
       const response = await fetch(
-        `${process.env.NUXT_PUBLIC_API_BASE || "http://localhost:4000"}/api/analytics/user/${userId}`,
+        `${getApiBase()}/api/analytics/user/${userId}`,
         { credentials: "include" }
       );
       this.analytics = await response.json();
@@ -216,7 +217,7 @@ export default class DashboardPage extends Vue {
   async loadActivityData() {
     try {
       const response = await fetch(
-        `${process.env.NUXT_PUBLIC_API_BASE || "http://localhost:4000"}/api/analytics/activity?days=30`,
+        `${getApiBase()}/api/analytics/activity?days=30`,
         { credentials: "include" }
       );
       this.activityData = await response.json();

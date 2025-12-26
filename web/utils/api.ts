@@ -1,4 +1,14 @@
-const API_BASE = process.env.NUXT_PUBLIC_API_BASE || "http://localhost:4000";
+﻿// Get API base URL at runtime (not build time)
+// On client: reads from Nuxt's publicRuntimeConfig
+// On server: reads from process.env
+export function getApiBase(): string {
+  // Client-side: use Nuxt's injected runtime config
+  if (typeof window !== "undefined" && (window as any).__NUXT__?.config?.apiBase) {
+    return (window as any).__NUXT__.config.apiBase;
+  }
+  // Server-side or fallback: use env var
+  return process.env.NUXT_PUBLIC_API_BASE || "http://localhost:4000";
+}
 
 // Fetch options with credentials for cookie support
 const fetchOptions: RequestInit = {
@@ -216,7 +226,7 @@ async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Re
 export const api = {
   // Auth
   async login(email: string, password: string): Promise<AuthResponse> {
-    const response = await fetchWithAuth(`${API_BASE}/api/auth/login`, {
+    const response = await fetchWithAuth(`${getApiBase()}/api/auth/login`, {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
@@ -224,16 +234,16 @@ export const api = {
   },
 
   async logout(): Promise<void> {
-    const response = await fetchWithAuth(`${API_BASE}/api/auth/logout`, {
+    const response = await fetchWithAuth(`${getApiBase()}/api/auth/logout`, {
       method: "POST",
     });
     await handleResponse<void>(response);
   },
 
   async getCurrentUser(): Promise<AuthResponse> {
-    console.log("[AUTH DEBUG] api.getCurrentUser - making request to:", `${API_BASE}/api/auth/me`);
+    console.log("[AUTH DEBUG] api.getCurrentUser - making request to:", `${getApiBase()}/api/auth/me`);
     console.log("[AUTH DEBUG] Request options:", { credentials: "include" });
-    const response = await fetchWithAuth(`${API_BASE}/api/auth/me`);
+    const response = await fetchWithAuth(`${getApiBase()}/api/auth/me`);
     console.log("[AUTH DEBUG] Response status:", response.status);
     // Log headers safely for debugging
     try {
@@ -257,23 +267,23 @@ export const api = {
     if (authorId) params.append("authorId", authorId);
     params.append("page", page.toString());
     params.append("limit", limit.toString());
-    const url = `${API_BASE}/api/articles?${params.toString()}`;
+    const url = `${getApiBase()}/api/articles?${params.toString()}`;
     const response = await fetchWithAuth(url);
     return handleResponse<ArticlesResponse>(response);
   },
 
   async getMyArticles(): Promise<ArticlesResponse> {
-    const response = await fetchWithAuth(`${API_BASE}/api/articles/my`);
+    const response = await fetchWithAuth(`${getApiBase()}/api/articles/my`);
     return handleResponse<ArticlesResponse>(response);
   },
 
   async getArticle(id: string): Promise<Article> {
-    const response = await fetchWithAuth(`${API_BASE}/api/articles/${id}`);
+    const response = await fetchWithAuth(`${getApiBase()}/api/articles/${id}`);
     return handleResponse<Article>(response);
   },
 
   async createArticle(payload: CreateArticlePayload): Promise<Article> {
-    const response = await fetchWithAuth(`${API_BASE}/api/articles`, {
+    const response = await fetchWithAuth(`${getApiBase()}/api/articles`, {
       method: "POST",
       body: JSON.stringify(payload),
     });
@@ -281,7 +291,7 @@ export const api = {
   },
 
   async updateArticle(id: string, payload: UpdateArticlePayload): Promise<Article> {
-    const response = await fetchWithAuth(`${API_BASE}/api/articles/${id}`, {
+    const response = await fetchWithAuth(`${getApiBase()}/api/articles/${id}`, {
       method: "PUT",
       body: JSON.stringify(payload),
     });
@@ -289,7 +299,7 @@ export const api = {
   },
 
   async deleteArticle(id: string): Promise<void> {
-    const response = await fetchWithAuth(`${API_BASE}/api/articles/${id}`, {
+    const response = await fetchWithAuth(`${getApiBase()}/api/articles/${id}`, {
       method: "DELETE",
     });
     await handleResponse<void>(response);
@@ -301,23 +311,23 @@ export const api = {
     if (search) params.append("search", search);
     params.append("limit", limit.toString());
     params.append("offset", offset.toString());
-    const response = await fetchWithAuth(`${API_BASE}/api/users?${params}`);
+    const response = await fetchWithAuth(`${getApiBase()}/api/users?${params}`);
     return handleResponse<{ items: User[]; total: number }>(response);
   },
 
   async getUser(idOrUsername: string): Promise<User> {
-    const response = await fetchWithAuth(`${API_BASE}/api/users/${idOrUsername}`);
+    const response = await fetchWithAuth(`${getApiBase()}/api/users/${idOrUsername}`);
     return handleResponse<User>(response);
   },
 
   async getUserArticles(idOrUsername: string, includeDrafts = false): Promise<Article[]> {
     const params = includeDrafts ? "?includeDrafts=true" : "";
-    const response = await fetchWithAuth(`${API_BASE}/api/users/${idOrUsername}/articles${params}`);
+    const response = await fetchWithAuth(`${getApiBase()}/api/users/${idOrUsername}/articles${params}`);
     return handleResponse<Article[]>(response);
   },
 
   async updateProfile(id: string, payload: UpdateProfilePayload): Promise<User> {
-    const response = await fetchWithAuth(`${API_BASE}/api/users/${id}`, {
+    const response = await fetchWithAuth(`${getApiBase()}/api/users/${id}`, {
       method: "PUT",
       body: JSON.stringify(payload),
     });
@@ -325,43 +335,43 @@ export const api = {
   },
 
   async getUserFollowers(idOrUsername: string): Promise<Follow[]> {
-    const response = await fetchWithAuth(`${API_BASE}/api/users/${idOrUsername}/followers`);
+    const response = await fetchWithAuth(`${getApiBase()}/api/users/${idOrUsername}/followers`);
     return handleResponse<Follow[]>(response);
   },
 
   async getUserFollowing(idOrUsername: string): Promise<Follow[]> {
-    const response = await fetchWithAuth(`${API_BASE}/api/users/${idOrUsername}/following`);
+    const response = await fetchWithAuth(`${getApiBase()}/api/users/${idOrUsername}/following`);
     return handleResponse<Follow[]>(response);
   },
 
   // Social - Likes
   async likeArticle(articleId: string): Promise<Like> {
-    const response = await fetchWithAuth(`${API_BASE}/api/articles/${articleId}/like`, {
+    const response = await fetchWithAuth(`${getApiBase()}/api/articles/${articleId}/like`, {
       method: "POST",
     });
     return handleResponse<Like>(response);
   },
 
   async unlikeArticle(articleId: string): Promise<void> {
-    const response = await fetchWithAuth(`${API_BASE}/api/articles/${articleId}/like`, {
+    const response = await fetchWithAuth(`${getApiBase()}/api/articles/${articleId}/like`, {
       method: "DELETE",
     });
     await handleResponse<void>(response);
   },
 
   async getArticleLikes(articleId: string): Promise<Like[]> {
-    const response = await fetchWithAuth(`${API_BASE}/api/articles/${articleId}/likes`);
+    const response = await fetchWithAuth(`${getApiBase()}/api/articles/${articleId}/likes`);
     return handleResponse<Like[]>(response);
   },
 
   async hasUserLiked(articleId: string): Promise<{ liked: boolean }> {
-    const response = await fetchWithAuth(`${API_BASE}/api/articles/${articleId}/liked`);
+    const response = await fetchWithAuth(`${getApiBase()}/api/articles/${articleId}/liked`);
     return handleResponse<{ liked: boolean }>(response);
   },
 
   // Social - Comments
   async addComment(articleId: string, content: string, parentId?: string | null): Promise<Comment & { articleCommentCount?: number }> {
-    const response = await fetchWithAuth(`${API_BASE}/api/articles/${articleId}/comments`, {
+    const response = await fetchWithAuth(`${getApiBase()}/api/articles/${articleId}/comments`, {
       method: "POST",
       body: JSON.stringify({ content, parentId: parentId || undefined }),
     });
@@ -369,12 +379,12 @@ export const api = {
   },
 
   async getArticleComments(articleId: string): Promise<Comment[]> {
-    const response = await fetchWithAuth(`${API_BASE}/api/articles/${articleId}/comments`);
+    const response = await fetchWithAuth(`${getApiBase()}/api/articles/${articleId}/comments`);
     return handleResponse<Comment[]>(response);
   },
 
   async updateComment(commentId: string, content: string): Promise<Comment> {
-    const response = await fetchWithAuth(`${API_BASE}/api/comments/${commentId}`, {
+    const response = await fetchWithAuth(`${getApiBase()}/api/comments/${commentId}`, {
       method: "PUT",
       body: JSON.stringify({ content }),
     });
@@ -382,7 +392,7 @@ export const api = {
   },
 
   async deleteComment(commentId: string): Promise<{ articleId: string; commentCount: number }> {
-    const response = await fetchWithAuth(`${API_BASE}/api/comments/${commentId}`, {
+    const response = await fetchWithAuth(`${getApiBase()}/api/comments/${commentId}`, {
       method: "DELETE",
     });
     return handleResponse<{ articleId: string; commentCount: number }>(response);
@@ -390,65 +400,65 @@ export const api = {
 
   // Social - Bookmarks
   async bookmarkArticle(articleId: string): Promise<Bookmark> {
-    const response = await fetchWithAuth(`${API_BASE}/api/articles/${articleId}/bookmark`, {
+    const response = await fetchWithAuth(`${getApiBase()}/api/articles/${articleId}/bookmark`, {
       method: "POST",
     });
     return handleResponse<Bookmark>(response);
   },
 
   async unbookmarkArticle(articleId: string): Promise<void> {
-    const response = await fetchWithAuth(`${API_BASE}/api/articles/${articleId}/bookmark`, {
+    const response = await fetchWithAuth(`${getApiBase()}/api/articles/${articleId}/bookmark`, {
       method: "DELETE",
     });
     await handleResponse<void>(response);
   },
 
   async getBookmarks(): Promise<Bookmark[]> {
-    const response = await fetchWithAuth(`${API_BASE}/api/bookmarks`);
+    const response = await fetchWithAuth(`${getApiBase()}/api/bookmarks`);
     return handleResponse<Bookmark[]>(response);
   },
 
   // Social - Follows
   async followUser(userId: string): Promise<Follow> {
-    const response = await fetchWithAuth(`${API_BASE}/api/users/${userId}/follow`, {
+    const response = await fetchWithAuth(`${getApiBase()}/api/users/${userId}/follow`, {
       method: "POST",
     });
     return handleResponse<Follow>(response);
   },
 
   async unfollowUser(userId: string): Promise<void> {
-    const response = await fetchWithAuth(`${API_BASE}/api/users/${userId}/follow`, {
+    const response = await fetchWithAuth(`${getApiBase()}/api/users/${userId}/follow`, {
       method: "DELETE",
     });
     await handleResponse<void>(response);
   },
 
   async isFollowing(userId: string): Promise<{ following: boolean }> {
-    const response = await fetchWithAuth(`${API_BASE}/api/users/${userId}/following-status`);
+    const response = await fetchWithAuth(`${getApiBase()}/api/users/${userId}/following-status`);
     return handleResponse<{ following: boolean }>(response);
   },
 
   // Feed & Notifications
   async getFeed(limit = 20): Promise<ActivityLog[]> {
-    const response = await fetchWithAuth(`${API_BASE}/api/feed?limit=${limit}`);
+    const response = await fetchWithAuth(`${getApiBase()}/api/feed?limit=${limit}`);
     return handleResponse<ActivityLog[]>(response);
   },
 
   async getNotifications(unreadOnly = false): Promise<Notification[]> {
     const params = unreadOnly ? "?unreadOnly=true" : "";
-    const response = await fetchWithAuth(`${API_BASE}/api/feed/notifications${params}`);
+    const response = await fetchWithAuth(`${getApiBase()}/api/feed/notifications${params}`);
     return handleResponse<Notification[]>(response);
   },
 
   async markNotificationAsRead(notificationId: string): Promise<Notification> {
-    const response = await fetchWithAuth(`${API_BASE}/api/feed/notifications/${notificationId}/read`, {
+    const response = await fetchWithAuth(`${getApiBase()}/api/feed/notifications/${notificationId}/read`, {
       method: "PUT",
     });
     return handleResponse<Notification>(response);
   },
 
   async markAllNotificationsAsRead(): Promise<void> {
-    const response = await fetchWithAuth(`${API_BASE}/api/feed/notifications/read-all`, {
+    const response = await fetchWithAuth(`${getApiBase()}/api/feed/notifications/read-all`, {
       method: "PUT",
     });
     await handleResponse<void>(response);

@@ -186,6 +186,7 @@
 import { Component, Vue } from "nuxt-property-decorator";
 import ShimmerPlaceholder from "~/components/ShimmerPlaceholder.vue";
 import PillButton from "~/components/PillButton.vue";
+import { getApiBase } from "~/utils/api";
 
 @Component({
   components: {
@@ -218,7 +219,7 @@ export default class DashboardModerationPage extends Vue {
     this.loading = true;
     try {
       const response = await fetch(
-        `${process.env.NUXT_PUBLIC_API_BASE || "http://localhost:4000"}/api/moderation/reports`,
+        `${getApiBase()}/api/moderation/reports`,
         { credentials: "include" }
       );
       const data = await response.json();
@@ -283,7 +284,7 @@ export default class DashboardModerationPage extends Vue {
 
     try {
       const response = await fetch(
-        `${process.env.NUXT_PUBLIC_API_BASE || "http://localhost:4000"}/api/moderation/reports/${report.id}`,
+        `${getApiBase()}/api/moderation/reports/${report.id}`,
         { credentials: "include" }
       );
       this.reportContext = await response.json();
@@ -295,7 +296,7 @@ export default class DashboardModerationPage extends Vue {
   async updateReportStatus(reportId: string, status: string) {
     try {
       const response = await fetch(
-        `${process.env.NUXT_PUBLIC_API_BASE || "http://localhost:4000"}/api/moderation/reports/${reportId}`,
+        `${getApiBase()}/api/moderation/reports/${reportId}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -317,7 +318,7 @@ export default class DashboardModerationPage extends Vue {
     this.saving = true;
     try {
       const response = await fetch(
-        `${process.env.NUXT_PUBLIC_API_BASE || "http://localhost:4000"}/api/moderation/reports/${this.selectedReport.id}`,
+        `${getApiBase()}/api/moderation/reports/${this.selectedReport.id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },

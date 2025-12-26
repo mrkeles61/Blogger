@@ -302,7 +302,7 @@
 
 <script lang="ts">
 import { Component, Vue } from "nuxt-property-decorator";
-import { api, Article } from "~/utils/api";
+import { api, Article, getApiBase } from "~/utils/api";
 import LikeButton from "~/components/LikeButton.vue";
 import BookmarkButton from "~/components/BookmarkButton.vue";
 import FollowButton from "~/components/FollowButton.vue";
@@ -410,7 +410,7 @@ export default class ArticleDetailPage extends Vue {
     this.reporting = true;
     try {
       const response = await fetch(
-        `${process.env.NUXT_PUBLIC_API_BASE || "http://localhost:4000"}/api/reports`,
+        `${getApiBase()}/api/reports`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

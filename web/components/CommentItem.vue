@@ -177,7 +177,7 @@
 
 <script lang="ts">
 import Vue, { PropType } from "vue";
-import { Comment } from "~/utils/api";
+import { Comment, getApiBase } from "~/utils/api";
 
 export default Vue.extend({
   name: "CommentItem",
@@ -278,7 +278,7 @@ export default Vue.extend({
       this.reporting = true;
       try {
         const response = await fetch(
-          `${process.env.NUXT_PUBLIC_API_BASE || "http://localhost:4000"}/api/reports`,
+          `${getApiBase()}/api/reports`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },

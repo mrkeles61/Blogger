@@ -36,9 +36,14 @@ export default {
   // Build modules
   buildModules: ["@nuxt/typescript-build"],
 
-  // Environment variables
+  // Environment variables (build-time, deprecated - use publicRuntimeConfig for runtime)
   env: {
     API_BASE: process.env.NUXT_PUBLIC_API_BASE || "http://localhost:4000",
+  },
+
+  // Runtime config - available at runtime via $config
+  publicRuntimeConfig: {
+    apiBase: process.env.NUXT_PUBLIC_API_BASE || "http://localhost:4000",
   },
 
   // Build configuration
