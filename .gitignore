@@ -16,3 +16,5 @@ coverage
 *.db-journal
 prisma/dev.db*
 
+# Cursor AI
+.cursorrules
