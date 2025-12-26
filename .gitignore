@@ -16,5 +16,13 @@ coverage
 *.db-journal
 prisma/dev.db*
 
-# Cursor AI
+# Editor / Formatting
 .cursorrules
+.prettierrc
+.prettierignore
+
+# Internal Project Docs
+GITHUB_SETUP.md
+PROJECT_CONTEXT.md
+PROJECT_GUIDELINES.md
+PROJECT_SUMMARY.md
