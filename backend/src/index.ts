@@ -13,8 +13,8 @@ if (!process.env.JWT_SECRET) {
   process.exit(1);
 }
 
-import express from "express";
-import cors from "cors";
+import express, { Request, Response } from "express";
+import cors, { CorsOptions } from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import cookieParser from "cookie-parser";
@@ -61,34 +61,33 @@ prisma.$connect()
 app.use(helmet());
 // CORS: Allow both localhost and 127.0.0.1 in development
 const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:3000";
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, Postman, etc.)
-      if (!origin) return callback(null, true);
-      
-      // In development, allow both localhost and 127.0.0.1
-      if (process.env.NODE_ENV !== "production") {
-        const allowedOrigins = [
-          "http://localhost:3000",
-          "http://127.0.0.1:3000",
-          corsOrigin,
-        ];
-        if (allowedOrigins.includes(origin)) {
-          return callback(null, true);
-        }
-      }
-      
-      // In production, use configured origin
-      if (origin === corsOrigin) {
+const corsOptions: CorsOptions = {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+
+    // In development, allow both localhost and 127.0.0.1
+    if (process.env.NODE_ENV !== "production") {
+      const allowedOrigins = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        corsOrigin,
+      ];
+      if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-      
-      callback(new Error("Not allowed by CORS"));
-    },
-    credentials: true,
-  })
-);
+    }
+
+    // In production, use configured origin
+    if (origin === corsOrigin) {
+      return callback(null, true);
+    }
+
+    callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+};
+app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
 
@@ -104,7 +103,7 @@ app.use("/api/", limiter);
 console.log("[INFO] Rate limiting enabled: 500 requests per 15 minutes");
 
 // Routes
-app.get("/health", (req, res) => {
+app.get("/health", (req: Request, res: Response) => {
   res.json({ ok: true });
 });
 

@@ -1,4 +1,4 @@
-import { Router, Response } from "express";
+import { Router, Request, Response } from "express";
 import { findUserByEmail, verifyPassword } from "../services/authService";
 import { signToken } from "../lib/jwt";
 import { loginSchema } from "../lib/validation";
@@ -62,7 +62,7 @@ authRouter.post(
 );
 
 // POST /api/auth/logout
-authRouter.post("/logout", (req, res) => {
+authRouter.post("/logout", (req: Request, res: Response) => {
   // Use same options for clearing cookie
   res.clearCookie(COOKIE_NAME, {
     httpOnly: true,
