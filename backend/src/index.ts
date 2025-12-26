@@ -57,17 +57,19 @@ prisma.$connect()
     process.exit(1);
   });
 
-// Middleware
-app.use(helmet());
-
 // CORS Configuration for cross-origin authentication
+// IMPORTANT: CORS must be configured BEFORE other middleware (including helmet)
 const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:3000";
 console.log(`[CORS] Configured allowed origin: ${corsOrigin}`);
+console.log(`[CORS] NODE_ENV: ${process.env.NODE_ENV}`);
 
 const corsOptions: CorsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    console.log(`[CORS] Incoming request origin: ${origin || "(no origin)"}`);
+
     // Allow requests with no origin (mobile apps, Postman, server-to-server, etc.)
     if (!origin) {
+      console.log(`[CORS] Allowing request with no origin`);
       return callback(null, true);
     }
 
@@ -79,22 +81,38 @@ const corsOptions: CorsOptions = {
         corsOrigin,
       ];
       if (allowedOrigins.includes(origin)) {
+        console.log(`[CORS] Allowing dev origin: ${origin}`);
         return callback(null, true);
       }
     }
 
     // In production, strictly check against configured origin
     if (origin === corsOrigin) {
+      console.log(`[CORS] Allowing production origin: ${origin}`);
       return callback(null, true);
     }
 
     // Log rejected origins for debugging
-    console.error(`[CORS] Blocked origin: ${origin} (allowed: ${corsOrigin})`);
+    console.error(`[CORS] BLOCKED origin: ${origin} (allowed: ${corsOrigin})`);
     callback(new Error(`CORS: Origin ${origin} not allowed`));
   },
-  credentials: true, // Required for cookies/authorization headers
+  credentials: true, // Required for cookies
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization", "Cookie", "X-Requested-With"],
+  exposedHeaders: ["Set-Cookie"],
+  maxAge: 86400, // 24 hours - cache preflight response
 };
+
+// Apply CORS middleware FIRST (before helmet and other middleware)
 app.use(cors(corsOptions));
+
+// Handle preflight OPTIONS requests explicitly
+app.options("*", cors(corsOptions));
+
+// Now apply other middleware
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+}));
 app.use(cookieParser());
 app.use(express.json());
 
