@@ -9,14 +9,18 @@ export const authRouter = Router();
 
 const COOKIE_NAME = process.env.SESSION_COOKIE_NAME || "auth_token";
 const isProduction = process.env.NODE_ENV === "production";
+
+// Cross-origin cookie requirements:
+// - sameSite: "none" - Required for cross-origin requests (different domains)
+// - secure: true - Required when sameSite is "none"
+// - httpOnly: true - Prevents JavaScript access (security)
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: isProduction, // Only secure in production (HTTPS required)
-  sameSite: isProduction ? ("strict" as const) : ("lax" as const),
+  secure: isProduction, // Must be true for sameSite: "none"
+  sameSite: isProduction ? ("none" as const) : ("lax" as const), // "none" for cross-origin
   maxAge: 24 * 60 * 60 * 1000, // 1 day
   path: "/", // Ensure cookie is available for all paths
-  // Don't set domain in dev - allows localhost and 127.0.0.1 to work
-  ...(isProduction && process.env.COOKIE_DOMAIN ? { domain: process.env.COOKIE_DOMAIN } : {}),
+  // Don't set domain for cross-origin - let browser handle it
 };
 
 // POST /api/auth/login
@@ -63,13 +67,12 @@ authRouter.post(
 
 // POST /api/auth/logout
 authRouter.post("/logout", (req: Request, res: Response) => {
-  // Use same options for clearing cookie
+  // Use same options for clearing cookie (must match set options exactly)
   res.clearCookie(COOKIE_NAME, {
     httpOnly: true,
     secure: isProduction,
-    sameSite: isProduction ? ("strict" as const) : ("lax" as const),
+    sameSite: isProduction ? ("none" as const) : ("lax" as const),
     path: "/",
-    ...(isProduction && process.env.COOKIE_DOMAIN ? { domain: process.env.COOKIE_DOMAIN } : {}),
   });
   res.json({ message: "Logged out successfully" });
 });

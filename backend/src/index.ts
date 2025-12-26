@@ -59,14 +59,19 @@ prisma.$connect()
 
 // Middleware
 app.use(helmet());
-// CORS: Allow both localhost and 127.0.0.1 in development
+
+// CORS Configuration for cross-origin authentication
 const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:3000";
+console.log(`[CORS] Configured allowed origin: ${corsOrigin}`);
+
 const corsOptions: CorsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // Allow requests with no origin (mobile apps, Postman, etc.)
-    if (!origin) return callback(null, true);
+    // Allow requests with no origin (mobile apps, Postman, server-to-server, etc.)
+    if (!origin) {
+      return callback(null, true);
+    }
 
-    // In development, allow both localhost and 127.0.0.1
+    // In development, allow localhost variants
     if (process.env.NODE_ENV !== "production") {
       const allowedOrigins = [
         "http://localhost:3000",
@@ -78,14 +83,16 @@ const corsOptions: CorsOptions = {
       }
     }
 
-    // In production, use configured origin
+    // In production, strictly check against configured origin
     if (origin === corsOrigin) {
       return callback(null, true);
     }
 
-    callback(new Error("Not allowed by CORS"));
+    // Log rejected origins for debugging
+    console.error(`[CORS] Blocked origin: ${origin} (allowed: ${corsOrigin})`);
+    callback(new Error(`CORS: Origin ${origin} not allowed`));
   },
-  credentials: true,
+  credentials: true, // Required for cookies/authorization headers
 };
 app.use(cors(corsOptions));
 app.use(cookieParser());
