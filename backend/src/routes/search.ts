@@ -15,13 +15,19 @@ searchRouter.get(
       return res.json({ articles: [], authors: [] });
     }
 
+    // Detect if running on PostgreSQL (production) or SQLite (local)
+    const isPostgres = process.env.DATABASE_URL?.startsWith('postgresql');
+    const searchFilter = isPostgres
+      ? { contains: query, mode: 'insensitive' as const }
+      : { contains: query };
+
     // Get top 5 matching articles
     const articles = await prisma.article.findMany({
       where: {
         status: "Published",
         OR: [
-          { title: { contains: query } },
-          { summary: { contains: query } },
+          { title: searchFilter },
+          { summary: searchFilter },
         ],
       },
       select: {
@@ -36,8 +42,8 @@ searchRouter.get(
     const authors = await prisma.user.findMany({
       where: {
         OR: [
-          { username: { contains: query } },
-          { displayName: { contains: query } },
+          { username: searchFilter },
+          { displayName: searchFilter },
         ],
       },
       select: {

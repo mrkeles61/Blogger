@@ -15,14 +15,15 @@ coverage
 *.db
 *.db-journal
 prisma/dev.db*
+prisma/schema.local.prisma
 
 # Editor / Formatting
 .cursorrules
 .prettierrc
 .prettierignore
+.geminiignore
 
 # Internal Project Docs
-GITHUB_SETUP.md
 PROJECT_CONTEXT.md
 PROJECT_GUIDELINES.md
 PROJECT_SUMMARY.md
