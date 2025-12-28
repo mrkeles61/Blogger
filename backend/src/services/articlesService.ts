@@ -46,6 +46,7 @@ export async function listArticles(filters: ListArticlesFilters = {}): Promise<A
 
   // LIKE search - simple and works with any query length
   // On PostgreSQL: case-insensitive; on SQLite: case-insensitive by default for ASCII
+  // Searches: title, summary, content, and author name
   if (search && search.length >= 1) {
     const searchFilter = isPostgres
       ? { contains: search, mode: 'insensitive' as const }
@@ -54,6 +55,8 @@ export async function listArticles(filters: ListArticlesFilters = {}): Promise<A
       { title: searchFilter },
       { summary: searchFilter },
       { content: searchFilter },
+      { author: { displayName: searchFilter } },
+      { author: { username: searchFilter } },
     ];
   }
 
